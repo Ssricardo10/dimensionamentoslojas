@@ -1,0 +1,19 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/mapa",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/mapa",
+      "destination": "/web/index.html"
+    },
+    {
+      "source": "/guia",
+      "destination": "/web/guia.html"
+    }
+  ]
+}
