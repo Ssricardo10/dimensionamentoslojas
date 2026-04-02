@@ -7,489 +7,418 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #f6f1e8;
-            --surface: rgba(255,255,255,.82);
-            --surface-strong: #fffdf8;
-            --text: #172033;
-            --muted: #5f6c80;
-            --line: rgba(23,32,51,.1);
-            --primary: #0f766e;
-            --accent: #d97706;
-            --deep: #123b54;
-            --ok: #166534;
-            --warn: #b45309;
-            --danger: #b91c1c;
-            --soft-shadow: 0 20px 60px rgba(18,59,84,.14);
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --text: #1a1a2e;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --primary: #667eea;
+            --accent: #764ba2;
+            --ok: #16a34a;
+            --warn: #d97706;
+            --danger: #dc2626;
         }
+
         body {
-            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
             color: var(--text);
-            font-family: Georgia, "Times New Roman", serif;
-            background:
-                radial-gradient(circle at top left, rgba(217,119,6,.18), transparent 32%),
-                radial-gradient(circle at top right, rgba(15,118,110,.16), transparent 28%),
-                linear-gradient(180deg, #f9f4ea 0%, #f4efe6 55%, #efe7db 100%);
+            overflow: auto;
         }
-        .page {
-            width: min(1180px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 24px 0 48px;
-        }
+
         .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 18px;
-        }
-        .brand {
-            font-size: 13px;
-            letter-spacing: .16em;
-            text-transform: uppercase;
-            color: var(--deep);
-            font-weight: 700;
-        }
-        .nav {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .nav a {
-            text-decoration: none;
-            color: var(--deep);
-            border: 1px solid rgba(18,59,84,.14);
-            background: rgba(255,255,255,.66);
-            padding: 10px 14px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: .05em;
-            text-transform: uppercase;
-            backdrop-filter: blur(10px);
-        }
-        .nav a.active {
-            background: var(--deep);
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
             color: #fff;
-            border-color: var(--deep);
+            border-bottom: 1px solid rgba(255,255,255,.15);
+            box-shadow: 0 4px 16px rgba(0,0,0,.12);
         }
+        .topbar-wrap {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .brand h1 { font-size: 20px; line-height: 1.1; }
+        .brand p { font-size: 12px; opacity: .9; margin-top: 3px; }
+        .main-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+        .main-nav a {
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,.28);
+            background: rgba(255,255,255,.15);
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            transition: all .2s;
+        }
+        .main-nav a.active { background: #fff; color: var(--primary); }
+
         .hero {
-            background: linear-gradient(135deg, rgba(255,253,248,.96), rgba(255,248,238,.88));
-            border: 1px solid rgba(18,59,84,.08);
-            border-radius: 28px;
-            box-shadow: var(--soft-shadow);
-            padding: 34px;
+            max-width: 1240px;
+            margin: 20px auto 12px;
+            padding: 0 20px;
             display: grid;
-            grid-template-columns: 1.3fr .9fr;
-            gap: 24px;
-            margin-bottom: 22px;
+            grid-template-columns: 1.2fr .8fr;
+            gap: 14px;
+        }
+        .hero-main {
+            background:
+                radial-gradient(circle at top left, rgba(102,126,234,.22), transparent 38%),
+                radial-gradient(circle at top right, rgba(118,75,162,.16), transparent 34%),
+                linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 6px 20px rgba(15,23,42,.06);
         }
         .eyebrow {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(15,118,110,.08);
-            color: var(--primary);
+            background: #e0e7ff;
+            color: #3730a3;
             border-radius: 999px;
-            padding: 8px 14px;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .hero-main h2 { font-size: 26px; line-height: 1.16; margin-bottom: 8px; }
+        .hero-main p { color: #4b5563; line-height: 1.6; font-size: 14px; }
+        .hero-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 12px;
             font-size: 12px;
             font-weight: 700;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-        }
-        h1 {
-            font-size: clamp(34px, 5vw, 60px);
-            line-height: .98;
-            margin-bottom: 14px;
-            color: #102136;
-        }
-        .hero p {
-            font-size: 18px;
-            line-height: 1.65;
-            color: var(--muted);
-            max-width: 680px;
-        }
-        .hero-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 22px;
-        }
-        .btn {
+            cursor: pointer;
             text-decoration: none;
-            border-radius: 999px;
-            padding: 13px 18px;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: .03em;
-            transition: transform .18s ease, box-shadow .18s ease;
-        }
-        .btn:hover { transform: translateY(-1px); }
-        .btn-primary { background: var(--deep); color: #fff; box-shadow: 0 12px 28px rgba(18,59,84,.18); }
-        .btn-secondary { background: rgba(255,255,255,.82); color: var(--deep); border: 1px solid rgba(18,59,84,.12); }
-        .hero-panel {
-            background: #fff;
-            border-radius: 22px;
-            padding: 22px;
-            border: 1px solid rgba(18,59,84,.08);
-            align-self: stretch;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .hero-panel h2 {
-            font-size: 18px;
-            margin-bottom: 12px;
-            color: var(--deep);
-        }
-        .mini-list {
-            display: grid;
-            gap: 10px;
-        }
-        .mini-item {
-            background: #f9faf8;
-            border: 1px solid rgba(18,59,84,.08);
-            border-radius: 16px;
-            padding: 12px 14px;
-        }
-        .mini-item strong {
-            display: block;
-            margin-bottom: 4px;
-            font-size: 14px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 18px;
-            margin-top: 18px;
-        }
-        .card {
-            grid-column: span 6;
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 24px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(23,32,51,.05);
-            backdrop-filter: blur(12px);
-        }
-        .card.full { grid-column: 1 / -1; }
-        .card h3 {
-            font-size: 24px;
-            margin-bottom: 14px;
-            color: #12253b;
-        }
-        .card p {
-            font-size: 16px;
-            line-height: 1.75;
-            color: var(--muted);
-        }
-        .steps {
-            display: grid;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .step {
-            display: grid;
-            grid-template-columns: 50px 1fr;
-            gap: 14px;
-            background: rgba(255,255,255,.72);
-            border: 1px solid rgba(18,59,84,.08);
-            border-radius: 18px;
-            padding: 14px;
-        }
-        .step-num {
-            width: 50px;
-            height: 50px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, var(--deep), var(--primary));
-            color: #fff;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            gap: 6px;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; }
+        .btn-soft { background: #eef2ff; color: #4338ca; }
+
+        .hero-side {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 6px 20px rgba(15,23,42,.06);
+        }
+        .hero-side h3 { font-size: 15px; margin-bottom: 10px; }
+        .mini-list { display: grid; gap: 8px; }
+        .mini {
+            border: 1px solid #e8ecf3;
+            border-radius: 10px;
+            padding: 10px;
+            background: #f9fbff;
+            font-size: 12px;
+            color: #4b5563;
+            line-height: 1.5;
+        }
+        .mini b { color: #111827; }
+
+        .sections {
+            max-width: 1240px;
+            margin: 12px auto 28px;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 14px;
+        }
+
+        .section-nav {
+            align-self: start;
+            position: sticky;
+            top: 94px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 10px;
+        }
+        .section-nav a {
+            display: block;
+            padding: 10px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            border: 1px solid #edf2f7;
+            background: #fafcff;
+        }
+        .section-nav a:hover { border-color: #c7d2fe; color: #4338ca; }
+
+        .content { display: grid; gap: 14px; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 6px 20px rgba(15,23,42,.04);
+        }
+        .card h3 { font-size: 17px; margin-bottom: 10px; }
+        .card p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+        .journey {
+            margin-top: 10px;
+            display: grid;
+            gap: 8px;
+        }
+        .step {
+            border-left: 4px solid var(--primary);
+            background: #f8faff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            line-height: 1.55;
+            color: #334155;
+        }
+        .step b { color: #1e3a8a; }
+
+        .controls-grid {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .control {
+            border: 1px solid #e8ecf3;
+            border-radius: 10px;
+            padding: 10px;
+            background: #fcfdff;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #475569;
+        }
+        .control b { color: #111827; }
+
+        .kpi-grid {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .kpi {
+            border: 1px solid #e8ecf3;
+            border-radius: 10px;
+            padding: 10px;
+            background: #f9fafb;
+            font-size: 12px;
+            color: #334155;
+        }
+        .kpi .name { font-weight: 700; color: #111827; }
+        .kpi .help { margin-top: 3px; color: #64748b; line-height: 1.4; }
+
+        .filters {
+            margin-top: 10px;
+            display: grid;
+            gap: 8px;
+        }
+        .filter-item {
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            font-size: 12px;
+            color: #334155;
+            line-height: 1.5;
+        }
+        .filter-item b { color: #111827; }
+
+        .badges { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .badge {
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 10px;
             font-weight: 700;
         }
-        .step strong {
-            display: block;
-            font-size: 17px;
-            margin-bottom: 4px;
+        .b-ok { background: #dcfce7; color: #166534; }
+        .b-warn { background: #fef3c7; color: #92400e; }
+        .b-danger { background: #fee2e2; color: #991b1b; }
+        .b-info { background: #e0e7ff; color: #3730a3; }
+
+        details {
+            border: 1px solid #e8ecf3;
+            border-radius: 10px;
+            background: #fcfdff;
+            padding: 10px;
+            margin-top: 8px;
         }
-        .legend {
-            display: grid;
-            gap: 10px;
-            margin-top: 16px;
+        summary {
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 12px;
+            color: #1f2937;
         }
-        .legend-item {
-            display: flex;
-            align-items: start;
-            gap: 12px;
-            padding: 12px 14px;
-            border-radius: 16px;
-            background: rgba(255,255,255,.76);
-            border: 1px solid rgba(18,59,84,.08);
+        details p {
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 12px;
         }
-        .dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            flex: 0 0 auto;
-            margin-top: 4px;
-        }
-        .tips {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .tip {
-            background: var(--surface-strong);
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 16px;
-        }
-        .tip h4 {
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-        .faq {
-            display: grid;
-            gap: 12px;
-            margin-top: 14px;
-        }
-        .faq-item {
-            background: rgba(255,255,255,.76);
-            border: 1px solid rgba(18,59,84,.08);
-            border-radius: 18px;
-            padding: 16px 18px;
-        }
-        .faq-item strong {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 16px;
-            color: #13263d;
-        }
+
         .footer {
-            margin-top: 24px;
+            max-width: 1240px;
+            margin: 0 auto 20px;
+            padding: 0 20px;
+            color: #94a3b8;
+            font-size: 11px;
             display: flex;
             justify-content: space-between;
-            gap: 16px;
+            gap: 10px;
             flex-wrap: wrap;
-            color: var(--muted);
-            font-size: 13px;
-            padding: 8px 2px;
         }
-        @media (max-width: 980px) {
+
+        @media (max-width: 1020px) {
             .hero { grid-template-columns: 1fr; }
-            .card { grid-column: 1 / -1; }
-            .tips { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 640px) {
-            .page { width: min(100% - 20px, 1180px); padding-top: 16px; }
-            .topbar { align-items: start; flex-direction: column; }
-            .hero { padding: 24px; border-radius: 22px; }
-            h1 { font-size: 32px; }
-            .hero p, .card p { font-size: 15px; }
-            .step { grid-template-columns: 1fr; }
+            .sections { grid-template-columns: 1fr; }
+            .section-nav { position: static; }
         }
     </style>
 </head>
 <body>
-    <div class="page">
-        <div class="topbar">
-            <div class="brand">SABESP · Guia de Navegacao</div>
-            <div class="nav">
+    <header class="topbar">
+        <div class="topbar-wrap">
+            <div class="brand">
+                <h1>📘 Guia Interativo SABESP</h1>
+                <p>Explicativo, lúdico e com ações práticas para operação</p>
+            </div>
+            <nav class="main-nav">
                 <a href="/mapa">Mapa</a>
                 <a href="/guia" class="active">Guia</a>
-            </div>
+            </nav>
         </div>
+    </header>
 
-        <section class="hero">
-            <div>
-                <div class="eyebrow">Leitura rapida para quem vai operar</div>
-                <h1>Um guia claro para transformar mapa em decisao.</h1>
-                <p>
-                    Esta ferramenta foi desenhada para ajudar voce a entender onde estao as lojas, quais promotores fazem mais sentido para cada ponto e como montar uma alocacao com menos deslocamento, mais coerencia operacional e leitura rapida do cenario.
-                </p>
-                <div class="hero-actions">
-                    <a class="btn btn-primary" href="/mapa">Abrir o mapa</a>
-                    <a class="btn btn-secondary" href="#fluxo">Ver fluxo recomendado</a>
-                </div>
+    <section class="hero">
+        <article class="hero-main">
+            <div class="eyebrow">Rota de uso em 3 minutos</div>
+            <h2>Imagine que você abriu o sistema agora e precisa decidir rápido.</h2>
+            <p>
+                Este guia foi pensado para te conduzir na prática, como uma historinha de operação real. Você entende os botões, interpreta os KPIs e usa os filtros sem ficar preso em texto técnico.
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="/mapa">🚀 Ir para o mapa</a>
+                <a class="btn btn-soft" href="#jornada">🧭 Ver jornada</a>
+                <a class="btn btn-soft" href="#botoes">🕹️ Ver botões</a>
             </div>
-            <aside class="hero-panel">
-                <div>
-                    <h2>O que voce encontra aqui</h2>
-                    <div class="mini-list">
-                        <div class="mini-item">
-                            <strong>Leitura visual imediata</strong>
-                            Entenda lojas, zonas e candidatos sem depender de planilhas abertas em paralelo.
-                        </div>
-                        <div class="mini-item">
-                            <strong>Analise assistida</strong>
-                            A ferramenta destaca proximidade, custo estimado, tempo de deslocamento e resposta do Formes.
-                        </div>
-                        <div class="mini-item">
-                            <strong>Decisao com contexto</strong>
-                            Nao e apenas um mapa. E um painel para comparar opcoes e registrar alocacoes de forma objetiva.
-                        </div>
-                    </div>
-                </div>
-            </aside>
-        </section>
+        </article>
+        <aside class="hero-side">
+            <h3>O que você vai dominar aqui</h3>
+            <div class="mini-list">
+                <div class="mini"><b>Fluxo completo:</b> de leitura geral até alocação final.</div>
+                <div class="mini"><b>Botão por botão:</b> para não clicar no escuro.</div>
+                <div class="mini"><b>KPI com significado:</b> não só número, mas ação.</div>
+                <div class="mini"><b>Filtros úteis:</b> como reduzir ruído e decidir melhor.</div>
+            </div>
+        </aside>
+    </section>
 
-        <section class="grid">
-            <article class="card" id="fluxo">
-                <h3>Como usar em 4 movimentos</h3>
-                <p>
-                    Pense no sistema como uma conversa entre territorio, pessoas e decisao. O ideal e seguir um fluxo simples, sempre saindo da visao geral para a acao.
-                </p>
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-num">1</div>
-                        <div>
-                            <strong>Comece pelo Dashboard</strong>
-                            Veja o tamanho da operacao, o total de funcionarios, como as respostas do Formes estao distribuidas e onde existem concentracoes por zona.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">2</div>
-                        <div>
-                            <strong>Entre nas Zonas</strong>
-                            Use a leitura geografica para entender que regioes estao mais pressionadas, mais equilibradas ou mais promissoras para cobertura.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">3</div>
-                        <div>
-                            <strong>Abra uma Loja</strong>
-                            Ao selecionar uma loja, o sistema mostra quem esta dentro do raio definido e qual candidato faz mais sentido naquele contexto.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">4</div>
-                        <div>
-                            <strong>Valide pela Busca</strong>
-                            Antes de fechar, consulte uma pessoa especifica e confira visao analitica, historico de encaixe e oportunidades mais proximas.
-                        </div>
-                    </div>
+    <section class="sections">
+        <nav class="section-nav">
+            <a href="#jornada">🧭 Jornada de uso</a>
+            <a href="#botoes">🕹️ O que cada botão faz</a>
+            <a href="#kpis">📊 Como ler KPIs</a>
+            <a href="#filtros">🔎 Filtros e funcionalidades</a>
+            <a href="#faq">❓ Dúvidas comuns</a>
+            <a href="/mapa">⚡ Ir para operação</a>
+        </nav>
+
+        <div class="content">
+            <article class="card" id="jornada">
+                <h3>🧭 Jornada de uso (história prática)</h3>
+                <p>Vamos simular a Ana, coordenadora, abrindo a plataforma para fechar alocações do dia.</p>
+                <div class="journey">
+                    <div class="step"><b>1. Ela começa no Dashboard:</b> lê volume total, pendências e lojas críticas para entender o tamanho da missão.</div>
+                    <div class="step"><b>2. Ela vai para Zonas:</b> descobre onde está a maior pressão operacional e prioriza território.</div>
+                    <div class="step"><b>3. Ela entra em Lojas:</b> escolhe uma unidade, regula o raio e compara os candidatos mais aderentes.</div>
+                    <div class="step"><b>4. Ela clica em Ver mapa:</b> confirma visualmente se o deslocamento e a geografia fazem sentido.</div>
+                    <div class="step"><b>5. Ela aloca e revisa:</b> volta para os KPIs, valida impacto e exporta Excel para prestação de contas.</div>
                 </div>
             </article>
 
-            <article class="card">
-                <h3>Como ler o mapa sem se perder</h3>
-                <p>
-                    O mapa foi pensado para responder tres perguntas: onde esta a loja, quem esta perto e qual regiao merece atencao primeiro. Cada elemento visual ajuda nessa leitura.
-                </p>
-                <div class="legend">
-                    <div class="legend-item">
-                        <span class="dot" style="background:#667eea"></span>
-                        <div><strong>Marcadores numerados</strong> Identificam as lojas. O numero ajuda a cruzar rapidamente o ponto no mapa com a lista lateral.</div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="dot" style="background:#1e40af"></span>
-                        <div><strong>Promotores no mapa</strong> Ao ativar o botao de promotores, voce ve todos os profissionais georreferenciados e pode navegar por proximidade real.</div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="dot" style="background:#16a34a"></span>
-                        <div><strong>Leitura por status</strong> Verde tende a indicar disponibilidade, vermelho falta de interesse, amarelo outras oportunidades e cinza ausencia de resposta.</div>
-                    </div>
+            <article class="card" id="botoes">
+                <h3>🕹️ O que cada botão faz (na prática)</h3>
+                <div class="controls-grid">
+                    <div class="control"><b>Limpo / Ruas / Satélite</b><br>Troca o tipo de base do mapa para facilitar leitura de contexto urbano.</div>
+                    <div class="control"><b>Promotores</b><br>Liga ou desliga os pontos dos profissionais no mapa.</div>
+                    <div class="control"><b>Dashboard / Zonas / Lojas / Busca</b><br>Alterna o foco da análise sem sair da tela principal.</div>
+                    <div class="control"><b>Raio (5km a 50km)</b><br>Filtra candidatos por alcance geográfico da loja.</div>
+                    <div class="control"><b>Raio ON/OFF</b><br>Mostra ou oculta o círculo de referência visual.</div>
+                    <div class="control"><b>📍 Ver mapa</b><br>Foca no candidato no mapa para validação visual imediata.</div>
+                    <div class="control"><b>Alocar / Remover</b><br>Inclui ou retira o candidato do plano atual da loja.</div>
+                    <div class="control"><b>Excel / Limpar</b><br>Exporta relatório consolidado ou reinicia alocações locais.</div>
                 </div>
             </article>
 
-            <article class="card full">
-                <h3>O que cada area da tela faz</h3>
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-num">A</div>
-                        <div>
-                            <strong>Dashboard</strong>
-                            Entrega a fotografia executiva da base. E a melhor aba para abrir uma reuniao, orientar priorizacao e contar a historia geral da operacao.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">B</div>
-                        <div>
-                            <strong>Zonas</strong>
-                            Resume cada territorio com linguagem mais geografica. Use quando a conversa e regional e nao pontual por loja.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">C</div>
-                        <div>
-                            <strong>Lojas</strong>
-                            Aqui mora a operacao. Voce escolhe o raio, compara candidatos, verifica quem ja foi alocado e consegue montar a equipe da unidade com mais criterio.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">D</div>
-                        <div>
-                            <strong>Busca</strong>
-                            Funciona como lupa. Quando ha duvida sobre uma pessoa, a busca mostra onde ela se encaixa melhor, qual loja esta mais perto e como o sistema interpreta sua resposta do Formes.
-                        </div>
-                    </div>
+            <article class="card" id="kpis">
+                <h3>📊 Como ler os KPIs sem confusão</h3>
+                <p>Cada KPI precisa responder: “o que isso significa?” e “qual ação eu tomo agora?”.</p>
+                <div class="kpi-grid">
+                    <div class="kpi"><div class="name">Lojas</div><div class="help">Escopo do território atendido.</div></div>
+                    <div class="kpi"><div class="name">Vagas Totais</div><div class="help">Capacidade total de cobertura do projeto.</div></div>
+                    <div class="kpi"><div class="name">Funcionários</div><div class="help">Tamanho da base disponível para alocar.</div></div>
+                    <div class="kpi"><div class="name">Disponíveis</div><div class="help">Quem já sinalizou abertura para alocação.</div></div>
+                    <div class="kpi"><div class="name">Alocados</div><div class="help">O que já foi fechado no plano atual.</div></div>
+                    <div class="kpi"><div class="name">Pendentes</div><div class="help">O que ainda falta fechar para completar cobertura.</div></div>
+                    <div class="kpi"><div class="name">% Ocupação</div><div class="help">Ritmo geral de preenchimento das vagas.</div></div>
+                    <div class="kpi"><div class="name">Lojas Críticas</div><div class="help">Lojas com maior risco operacional por baixa cobertura.</div></div>
                 </div>
             </article>
 
-            <article class="card">
-                <h3>Como interpretar o Formes</h3>
-                <p>
-                    A resposta do Formes nao aparece apenas como texto. Ela vira um sinal de decisao. O sistema transforma a resposta em uma orientacao operacional mais facil de ler.
-                </p>
-                <div class="legend">
-                    <div class="legend-item"><span class="dot" style="background:#16a34a"></span><div><strong>Disponivel</strong> Candidato com maior potencial de encaixe rapido. Vale olhar primeiro.</div></div>
-                    <div class="legend-item"><span class="dot" style="background:#dc2626"></span><div><strong>Sem interesse</strong> Indica baixa chance de conversao. Evite gastar energia operacional aqui.</div></div>
-                    <div class="legend-item"><span class="dot" style="background:#d97706"></span><div><strong>Outras oportunidades</strong> Pode servir em contexto diferente, mas pede leitura mais cuidadosa.</div></div>
-                    <div class="legend-item"><span class="dot" style="background:#94a3b8"></span><div><strong>Sem resposta</strong> Nao e descarte automatico. Significa que falta validacao humana.</div></div>
+            <article class="card" id="filtros">
+                <h3>🔎 Filtros e funcionalidades que realmente ajudam</h3>
+                <div class="filters">
+                    <div class="filter-item"><b>Filtro de lojas:</b> busca por nome, zona, UN e endereço para chegar rápido no ponto certo.</div>
+                    <div class="filter-item"><b>Filtro por zona:</b> concentra sua visão num território específico.</div>
+                    <div class="filter-item"><b>Filtro por raio:</b> abre ou fecha o funil de candidatos por distância real.</div>
+                    <div class="filter-item"><b>Busca por pessoa:</b> encontra funcionário por nome, cadastro ou cidade.</div>
+                    <div class="filter-item"><b>Classificação Formes:</b> ajuda a priorizar quem tem maior chance de conversão.</div>
+                    <div class="filter-item"><b>Persistência local:</b> suas alocações ficam salvas no navegador atual.</div>
+                </div>
+                <div class="badges">
+                    <span class="badge b-ok">Dica: comece por Dashboard</span>
+                    <span class="badge b-warn">Dica: ajuste o raio antes de decidir</span>
+                    <span class="badge b-danger">Atenção: limpar apaga o plano local</span>
+                    <span class="badge b-info">Obs: não sincroniza entre usuários</span>
                 </div>
             </article>
 
-            <article class="card">
-                <h3>Boas praticas para decidir melhor</h3>
-                <p>
-                    A ferramenta ajuda muito, mas a melhor decisao nasce quando voce combina leitura tecnica com contexto humano da operacao.
-                </p>
-                <div class="tips">
-                    <div class="tip">
-                        <h4>Olhe a distancia e o contexto</h4>
-                        Um candidato mais proximo costuma ser melhor, mas confirme disponibilidade real e aderencia da loja.
-                    </div>
-                    <div class="tip">
-                        <h4>Evite decidir por um unico numero</h4>
-                        Distancia, custo e resposta do Formes devem andar juntos. Um unico indicador isolado pode enganar.
-                    </div>
-                    <div class="tip">
-                        <h4>Use a busca para desempatar</h4>
-                        Quando houver duas boas opcoes, a busca individual costuma revelar detalhes que a lista geral nao entrega de imediato.
-                    </div>
-                </div>
+            <article class="card" id="faq">
+                <h3>❓ Dúvidas comuns (respostas rápidas)</h3>
+                <details>
+                    <summary>Por onde começo para não me perder?</summary>
+                    <p>Dashboard → Zonas → Lojas → Busca. Esse fluxo evita decisões isoladas e acelera o fechamento com contexto.</p>
+                </details>
+                <details>
+                    <summary>Posso alocar só pela menor distância?</summary>
+                    <p>Use distância como ponto de partida, mas valide Formes, status e aderência operacional da loja.</p>
+                </details>
+                <details>
+                    <summary>Se eu apagar tudo, todo mundo perde?</summary>
+                    <p>Não. O armazenamento é local no navegador atual. A limpeza afeta apenas o dispositivo em uso.</p>
+                </details>
             </article>
-
-            <article class="card full">
-                <h3>Perguntas que surgem no dia a dia</h3>
-                <div class="faq">
-                    <div class="faq-item">
-                        <strong>Por onde eu comeco quando abro o sistema?</strong>
-                        Pelo Dashboard. Ele organiza o raciocinio e mostra se o problema do momento e territorial, volumetrico ou pontual em algumas lojas.
-                    </div>
-                    <div class="faq-item">
-                        <strong>Se a pessoa aparecer perto da loja, isso significa que devo alocar?</strong>
-                        Nao necessariamente. Proximidade ajuda, mas a decisao final deve considerar resposta do Formes, historico e aderencia operacional.
-                    </div>
-                    <div class="faq-item">
-                        <strong>O que fazer quando a pessoa nao respondeu?</strong>
-                        Trate como fila de validacao. O sistema sinaliza a oportunidade, mas a confirmacao precisa de contato humano.
-                    </div>
-                    <div class="faq-item">
-                        <strong>Quando vale mudar o raio da loja?</strong>
-                        Quando voce percebe escassez ou excesso de candidatos. O raio ajuda a testar cenarios com mais rigor geografico.
-                    </div>
-                </div>
-            </article>
-        </section>
-
-        <div class="footer">
-            <div>Guia pensado para leitura simples, objetiva e amigavel para o usuario final.</div>
-            <div>Samuel Ricardo · Analista de Business Intelligence Trade</div>
         </div>
-    </div>
+    </section>
+
+    <footer class="footer">
+        <div>Guia desenhado para apoiar decisão operacional real, com leitura clara e ação imediata.</div>
+        <div>Samuel Ricardo · Analista de Business Intelligence Trade</div>
+    </footer>
 </body>
 </html>

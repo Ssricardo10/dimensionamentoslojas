@@ -92,6 +92,15 @@
         .cand-dist b { display: block; font-size: 13px; color: var(--text); }
         .cand-detail { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
         .cand-obs { margin-top: 6px; padding: 6px 8px; border-radius: 6px; font-size: 10px; line-height: 1.4; }
+        .cand-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .cand-chip { font-size: 10px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 999px; padding: 2px 8px; }
+        .cand-actions { margin-top: 8px; display: flex; justify-content: flex-end; gap: 6px; }
+        .btn-map { background: #eef2ff; color: #4338ca; }
+        .btn-disabled { background: #e2e8f0; color: #475569; cursor: default; }
+        .candidates-toolbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0 10px; }
+        .candidates-toolbar .mini { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px; text-align:center; }
+        .candidates-toolbar .mini b { display:block; font-size:16px; color:var(--primary); }
+        .candidates-toolbar .mini span { font-size:10px; color:var(--muted); }
         .btn { padding: 6px 12px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; }
         .btn-alloc { background: var(--primary); color: #fff; }
         .btn-alloc:hover { opacity: .9; }
@@ -178,6 +187,7 @@
         .footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
         .footer .dev { display: flex; align-items: center; gap: 6px; }
         .footer .pulse { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; animation: pulse-ring 2s infinite; }
+
     </style>
 </head>
 <body>
@@ -312,6 +322,7 @@ function buildPersonSummary(f) {
 map = L.map('map', { zoomControl: true, zoomControlPosition: 'topleft' }).setView([-23.55, -46.63], 10);
 layers.clean.addTo(map);
 map.zoomControl.setPosition('topleft');
+window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 120));
 
 fetch('/web/dados_alocacao.json')
     .then(r => r.json())
@@ -319,6 +330,7 @@ fetch('/web/dados_alocacao.json')
     .catch(e => alert('Erro ao carregar dados: ' + e.message));
 
 function init() {
+    setTimeout(() => map.invalidateSize(), 120);
     drawStores();
     renderDashboard();
     renderZones();
@@ -728,6 +740,8 @@ function renderAllocation() {
     const al = allocs[loja.nome] || [];
     const rest = loja.total_hcs - al.length;
     const candidates = getCandidates(loja);
+    const dispCount = candidates.filter(c => classifyFormes(c.resposta_interesse).type === 'disponivel').length;
+    const allocadosCount = candidates.filter(c => isAllocated(c.cadastro)).length;
 
     document.getElementById('v-stores').innerHTML = `
         <button class="btn" style="background:#f3f4f6;margin-bottom:12px;width:100%" onclick="selectedStore=null;renderStoreList()">← Voltar para lista</button>
@@ -750,7 +764,7 @@ function renderAllocation() {
         ${al.length ? `
         <div class="allocated">
             <div class="allocated-title">✅ Funcionários Alocados (${al.length})</div>
-            ${al.map(a => `<div class="allocated-item"><span class="name">${a.nome}</span><span style="color:var(--muted);font-size:11px">${a.distancia}km</span><button class="btn btn-remove" onclick="deallocate('${escHtml(loja.nome)}','${a.cadastro}')">✕</button></div>`).join('')}
+            ${al.map(a => `<div class="allocated-item"><span class="name">${a.nome}</span><span style="color:var(--muted);font-size:11px">${a.distancia}km</span><button class="btn btn-remove" onclick="deallocate('${escHtml(loja.nome)}','${a.cadastro}')">Remover</button></div>`).join('')}
         </div>` : ''}
 
         <div class="card" style="margin-top:12px">
@@ -758,6 +772,11 @@ function renderAllocation() {
             <div class="radius-btns">
                 ${RAIOS.map(r => `<button class="radius-btn ${r===selectedRadius?'active':''}" onclick="selectedRadius=${r};updateRadiusCircle();renderAllocation()">${r}km <b>${countByRadius(loja, r)}</b></button>`).join('')}
                 <button class="radius-btn ${showRadius?'active':''}" onclick="toggleRadiusCircle()">${showRadius ? 'Raio ON' : 'Raio OFF'}</button>
+            </div>
+            <div class="candidates-toolbar">
+                <div class="mini"><b>${candidates.length}</b><span>Candidatos</span></div>
+                <div class="mini"><b>${dispCount}</b><span>Disponíveis</span></div>
+                <div class="mini"><b>${allocadosCount}</b><span>Já alocados</span></div>
             </div>
             ${candidates.length ? candidates.slice(0, 50).map(c => {
                 const formes = classifyFormes(c.resposta_interesse);
@@ -782,10 +801,17 @@ function renderAllocation() {
                         </div>
                         <div class="cand-dist">
                             <b>${c.distancia}km</b>
-                            ~${c.tempo}min · R$${c.custo}/mês
+                            ~${c.tempo}min
                         </div>
-                        <button class="btn" style="background:#eef2ff;color:#4338ca;font-size:10px;padding:4px 8px" onclick="event.stopPropagation();focusPerson('${c.cadastro}')">📍</button>
-                        ${isAllocated(c.cadastro) ? `<span class="btn" style="background:#e2e8f0;color:#475569;font-size:10px;cursor:default">Alocado</span>` : `<button class="btn btn-alloc" onclick="event.stopPropagation();allocate('${escJs(loja.nome)}','${c.cadastro}','${escJs(c.nome)}',${c.distancia})">Alocar</button>`}
+                    </div>
+                    <div class="cand-meta">
+                        <span class="cand-chip">💰 R$${c.custo}/mês</span>
+                        <span class="cand-chip">🏙️ ${c.cidade}</span>
+                        ${top ? `<span class="cand-chip">🏢 Top: ${top.loja_nome}</span>` : ''}
+                    </div>
+                    <div class="cand-actions">
+                        <button class="btn btn-map" onclick="event.stopPropagation();focusPerson('${c.cadastro}')">📍 Ver mapa</button>
+                        ${isAllocated(c.cadastro) ? `<span class="btn btn-disabled">Alocado</span>` : `<button class="btn btn-alloc" onclick="event.stopPropagation();allocate('${escJs(loja.nome)}','${c.cadastro}','${escJs(c.nome)}',${c.distancia})">Alocar</button>`}
                     </div>
                     <div class="cand-obs ${formes.css}" style="font-size:10px;padding:4px 8px;border-radius:4px;border-left:3px solid;margin-top:4px">
                         ${formes.icon} <b>Formes:</b> ${formes.type === 'semresposta' ? 'Sem resposta — contatar' : formes.label} ${formes.type === 'disponivel' ? '✓' : ''}
