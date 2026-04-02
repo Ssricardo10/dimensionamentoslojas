@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SABESP - Gestão de Alocação</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -101,6 +104,13 @@
         .candidates-toolbar .mini { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px; text-align:center; }
         .candidates-toolbar .mini b { display:block; font-size:16px; color:var(--primary); }
         .candidates-toolbar .mini span { font-size:10px; color:var(--muted); }
+        .panel-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+        .pill-btn { border: 1px solid #e5e7eb; background: #fff; border-radius: 999px; padding: 5px 10px; font-size: 11px; cursor: pointer; }
+        .pill-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .note-box { border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;padding:10px;font-size:11px;color:#475569; }
+        .alert-box { border-left:4px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:10px;font-size:12px;color:#92400e;margin-bottom:8px; }
+        .alert-box.danger { border-left-color:#ef4444;background:#fef2f2;color:#991b1b; }
+        .alert-box.info { border-left-color:#3b82f6;background:#eff6ff;color:#1e3a8a; }
         .btn { padding: 6px 12px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; }
         .btn-alloc { background: var(--primary); color: #fff; }
         .btn-alloc:hover { opacity: .9; }
@@ -129,11 +139,152 @@
         .map-layer-btn { padding: 8px 14px; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
         .map-layer-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+        .map-context {
+            position: absolute;
+            top: 12px;
+            left: 58px;
+            z-index: 990;
+            background: rgba(255,255,255,.95);
+            border: 1px solid #dbe3f0;
+            border-radius: 10px;
+            padding: 7px 10px;
+            font-size: 10.5px;
+            line-height: 1.35;
+            color: #334155;
+            box-shadow: 0 2px 10px rgba(15,23,42,.08);
+            min-width: 250px;
+            max-width: 320px;
+            pointer-events: none;
+        }
+        .map-context b { color: #1e3a8a; }
+        .legend-live {
+            position: absolute;
+            bottom: 12px;
+            right: 452px;
+            z-index: 990;
+            background: rgba(255,255,255,.95);
+            border: 1px solid #dbe3f0;
+            border-radius: 10px;
+            padding: 8px;
+            box-shadow: 0 2px 10px rgba(15,23,42,.08);
+            min-width: 238px;
+        }
+        .legend-title { font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+        .legend-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .legend-chip {
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            background: #fff;
+            padding: 3px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            color: #475569;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-chip.active { background: #eef2ff; border-color: #c7d2fe; color: #3730a3; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        .zone-legend-panel {
+            position: absolute;
+            top: 74px;
+            left: 58px;
+            z-index: 989;
+            background: rgba(255,255,255,.96);
+            border: 1px solid #dbe3f0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(15,23,42,.08);
+            width: 360px;
+            max-height: calc(100vh - 190px);
+            overflow: auto;
+            padding: 8px;
+        }
+        .zone-legend-head { margin-bottom: 6px; }
+        .zone-legend-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .zone-legend-title { font-size: 11px; font-weight: 700; color: #0f172a; }
+        .zone-legend-sub { font-size: 10px; color: #64748b; margin-top: 2px; }
+        .zone-legend-toggle {
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 3px 9px;
+        }
+        .zone-legend-toggle:hover { border-color: #94a3b8; }
+        .zone-legend-row {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 7px;
+            margin-bottom: 6px;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .zone-legend-row:hover { border-color: #c7d2fe; box-shadow: 0 1px 6px rgba(99,102,241,.15); }
+        .zone-legend-row.active { border-color: #6366f1; background: #eef2ff; }
+        .zone-legend-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .zone-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #1f2937; }
+        .zone-swatch { width: 10px; height: 10px; border-radius: 50%; }
+        .zone-critical { font-size: 10px; font-weight: 700; color: #dc2626; }
+        .zone-legend-metrics { margin-top: 5px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .zone-legend-metric {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 4px;
+            text-align: center;
+        }
+        .zone-legend-metric b { display: block; font-size: 12px; color: #0f172a; }
+        .zone-legend-metric span { font-size: 9px; color: #64748b; }
+        .zone-roles {
+            margin-top: 4px;
+            font-size: 10px;
+            color: #475569;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 4px 6px;
+        }
+        .zone-legend-note {
+            margin-top: 2px;
+            font-size: 9px;
+            color: #64748b;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 5px;
+        }
+        .zone-legend-panel.collapsed {
+            width: 230px;
+            max-height: none;
+            padding-bottom: 6px;
+        }
+        .zone-legend-panel.collapsed .zone-legend-row,
+        .zone-legend-panel.collapsed .zone-legend-note {
+            display: none;
+        }
+        .zone-legend-panel.collapsed .zone-legend-head { margin-bottom: 0; }
+
         /* Toggle promotores */
         .map-toggle { position: absolute; bottom: 30px; left: 12px; z-index: 999; display: flex; gap: 4px; flex-direction: column; }
         .map-toggle-btn { padding: 8px 14px; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.1); display: flex; align-items: center; gap: 6px; }
         .map-toggle-btn.active { background: #1e40af; color: #fff; border-color: #1e40af; }
         .map-toggle-btn .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        .store-critical-ring {
+            position: absolute;
+            inset: -7px;
+            border-radius: 50%;
+            border: 2px solid rgba(220,38,38,.55);
+            animation: store-pulse 1.8s ease-out infinite;
+            pointer-events: none;
+        }
+        @keyframes store-pulse {
+            0% { transform: scale(.86); opacity: .9; }
+            70% { transform: scale(1.25); opacity: 0; }
+            100% { transform: scale(1.25); opacity: 0; }
+        }
         
         /* Empty state */
         .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
@@ -194,11 +345,23 @@
     <div class="app">
         <!-- Map -->
         <div id="map">
+            <div class="map-context" id="map-context">Cenário: <b>A</b> · Raio: <b>15km</b><br>Selecione uma loja para detalhar.</div>
             <div class="map-layers">
                 <button class="map-layer-btn active" onclick="setLayer('clean')">Limpo</button>
                 <button class="map-layer-btn" onclick="setLayer('streets')">Ruas</button>
                 <button class="map-layer-btn" onclick="setLayer('satellite')">Satélite</button>
             </div>
+            <div class="legend-live" id="legend-live">
+                <div class="legend-title">🎨 Legenda Viva do Mapa</div>
+                <div class="legend-chips">
+                    <button class="legend-chip active" id="chip-disponivel" onclick="toggleLegendType('disponivel')"><span class="legend-dot" style="background:#16a34a"></span>Disponíveis</button>
+                    <button class="legend-chip active" id="chip-semresposta" onclick="toggleLegendType('semresposta')"><span class="legend-dot" style="background:#94a3b8"></span>Sem resposta</button>
+                    <button class="legend-chip active" id="chip-outras" onclick="toggleLegendType('outras')"><span class="legend-dot" style="background:#d97706"></span>Outras</button>
+                    <button class="legend-chip active" id="chip-seminteresse" onclick="toggleLegendType('seminteresse')"><span class="legend-dot" style="background:#dc2626"></span>Sem interesse</button>
+                    <button class="legend-chip active" id="chip-alocado" onclick="toggleLegendType('alocado')"><span class="legend-dot" style="background:#1e40af"></span>Alocados</button>
+                </div>
+            </div>
+            <div class="zone-legend-panel" id="zone-legend"></div>
             <div class="map-toggle">
                 <button class="map-toggle-btn" id="btn-promotores" onclick="togglePromotores()">
                     <span class="dot" style="background:#1e40af"></span> Promotores
@@ -225,6 +388,7 @@
                 <div class="tab active" onclick="switchTab('dashboard')"><span class="icon">📊</span>Dashboard</div>
                 <div class="tab" onclick="switchTab('zones')"><span class="icon">🗺️</span>Zonas</div>
                 <div class="tab" onclick="switchTab('stores')"><span class="icon">🏢</span>Lojas</div>
+                <div class="tab" onclick="switchTab('executive')"><span class="icon">🎯</span>Executivo</div>
                 <div class="tab" onclick="switchTab('search')"><span class="icon">🔍</span>Busca</div>
             </div>
             
@@ -232,6 +396,7 @@
                 <div id="v-dashboard" class="view active"></div>
                 <div id="v-zones" class="view"></div>
                 <div id="v-stores" class="view"></div>
+                <div id="v-executive" class="view"></div>
                 <div id="v-search" class="view"></div>
             </div>
             <div class="footer">
@@ -246,11 +411,160 @@
 let data = null;
 let map, storeLayerGroup, peopleLayerGroup, radiusCircle;
 let allocs = JSON.parse(localStorage.getItem('sabesp_allocs') || '{}');
+let scenarioStore = JSON.parse(localStorage.getItem('sabesp_scenarios') || '{}');
+let currentScenario = localStorage.getItem('sabesp_current_scenario') || 'A';
+let auditLog = JSON.parse(localStorage.getItem('sabesp_audit') || '[]');
+let qualityReport = { totalIssues: 0, items: [] };
+let candidateFilters = { onlyAvailable: false, onlyUnallocated: false, sortBy: 'score' };
+let mapLegendFilter = { disponivel: true, semresposta: true, outras: true, seminteresse: true, alocado: true };
 let selectedStore = null;
 let selectedRadius = 15;
 let showRadius = true;
 let showPromotores = false;
+let zoneLegendCollapsed = localStorage.getItem('sabesp_zone_legend_collapsed') === '1';
 const RAIOS = [5, 10, 15, 20, 25, 30, 40, 50];
+
+if (!scenarioStore.A) scenarioStore.A = allocs;
+if (!scenarioStore.B) scenarioStore.B = {};
+if (!scenarioStore.C) scenarioStore.C = {};
+allocs = JSON.parse(JSON.stringify(scenarioStore[currentScenario] || {}));
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function setScenario(name) {
+    currentScenario = name;
+    allocs = JSON.parse(JSON.stringify(scenarioStore[name] || {}));
+    localStorage.setItem('sabesp_current_scenario', currentScenario);
+    updateMapContext();
+    drawStores();
+    renderDashboard();
+    renderZones();
+    renderStoreList();
+    renderExecutive();
+    if (showPromotores) drawPeople();
+}
+
+function logAudit(action, payload) {
+    auditLog.unshift({
+        ts: new Date().toISOString(),
+        scenario: currentScenario,
+        action,
+        ...payload
+    });
+    auditLog = auditLog.slice(0, 1500);
+    localStorage.setItem('sabesp_audit', JSON.stringify(auditLog));
+}
+
+function runDataQualityCheck() {
+    const items = [];
+    const seen = new Set();
+    let noGeo = 0;
+    let noNearStores = 0;
+
+    data.funcionarios.forEach(f => {
+        const cad = String(f.cadastro || '').trim();
+        if (!cad) items.push('Funcionário sem cadastro: ' + (f.nome || 'N/A'));
+        if (cad && seen.has(cad)) items.push('Cadastro duplicado: ' + cad);
+        if (cad) seen.add(cad);
+        if (!f.lat || !f.lng) noGeo++;
+        if (!f.lojas_proximas || !f.lojas_proximas.length) noNearStores++;
+    });
+
+    if (noGeo) items.push(`Sem geolocalização: ${noGeo}`);
+    if (noNearStores) items.push(`Sem lojas próximas: ${noNearStores}`);
+    qualityReport = { totalIssues: items.length, items };
+}
+
+function calcCandidateScore(f, info, lojaId) {
+    const formes = classifyFormes(f.resposta_interesse).type;
+    const distScore = clamp(100 - (info.distancia_km * 1.6), 0, 100);
+    const costScore = clamp(100 - (info.custo_mensal / 6), 0, 100);
+    const formBonus = formes === 'disponivel' ? 16 : formes === 'semresposta' ? 4 : formes === 'outras' ? 0 : -24;
+    const top = f.lojas_proximas && f.lojas_proximas[0];
+    const topBonus = top && top.loja_id === lojaId ? 8 : 0;
+    return clamp(Math.round((distScore * 0.55) + (costScore * 0.45) + formBonus + topBonus), 0, 100);
+}
+
+function updateMapContext() {
+    const el = document.getElementById('map-context');
+    if (!el) return;
+    if (!selectedStore) {
+        el.innerHTML = `Cenário: <b>${currentScenario}</b> · Raio: <b>${selectedRadius}km</b><br>Selecione uma loja para detalhar.`;
+        return;
+    }
+    const al = (allocs[selectedStore.nome] || []).length;
+    const pct = selectedStore.total_hcs ? ((al / selectedStore.total_hcs) * 100).toFixed(1) : '0.0';
+    const cargos = `Ag: ${selectedStore.vagas_agentes || 0} · Tri: ${selectedStore.vagas_triagistas || 0}`;
+    el.innerHTML = `Cenário: <b>${currentScenario}</b> · Loja: <b>${selectedStore.nome}</b><br>Raio: <b>${selectedRadius}km</b> · Alocados: <b>${al}/${selectedStore.total_hcs}</b> · <b>${pct}%</b><br>Cargos: <b>${cargos}</b>`;
+}
+
+function getZoneLegendMetrics(code) {
+    const lojasZona = data.lojas.filter(l => l.un === code);
+    const vagas = lojasZona.reduce((s, l) => s + (l.total_hcs || 0), 0);
+    const alocados = lojasZona.reduce((s, l) => s + ((allocs[l.nome] || []).length), 0);
+    const pendentes = Math.max(0, vagas - alocados);
+    const preenchimento = vagas ? ((alocados / vagas) * 100) : 0;
+    const criticas = lojasZona.filter(l => {
+        const al = (allocs[l.nome] || []).length;
+        return l.total_hcs && (al / l.total_hcs) < 0.5;
+    }).length;
+    const vagasAgentes = lojasZona.reduce((s, l) => s + (l.vagas_agentes || 0), 0);
+    const vagasTriagistas = lojasZona.reduce((s, l) => s + (l.vagas_triagistas || 0), 0);
+
+    return { lojas: lojasZona.length, vagas, alocados, pendentes, preenchimento, criticas, vagasAgentes, vagasTriagistas };
+}
+
+function renderZoneLegendMap() {
+    const el = document.getElementById('zone-legend');
+    if (!el || !data) return;
+    el.classList.toggle('collapsed', zoneLegendCollapsed);
+
+    const totalVagas = data.lojas.reduce((s, l) => s + (l.total_hcs || 0), 0);
+    const totalAlocados = Object.values(allocs).reduce((s, arr) => s + arr.length, 0);
+    const totalPendentes = Math.max(0, totalVagas - totalAlocados);
+    const totalPct = totalVagas ? ((totalAlocados / totalVagas) * 100).toFixed(1) : '0.0';
+
+    el.innerHTML = `
+        <div class="zone-legend-head">
+            <div class="zone-legend-head-row">
+                <div class="zone-legend-title">🗺️ Legenda de Zonas + Operação</div>
+                <button class="zone-legend-toggle" onclick="toggleZoneLegend()">${zoneLegendCollapsed ? 'Expandir' : 'Ocultar'}</button>
+            </div>
+            <div class="zone-legend-sub">Vagas: <b>${totalVagas}</b> · Alocados: <b>${totalAlocados}</b> · Pendentes: <b>${totalPendentes}</b> · Preenchimento: <b>${totalPct}%</b></div>
+        </div>
+        ${Object.entries(data.cores_zonas).map(([code, z]) => {
+            const m = getZoneLegendMetrics(code);
+            const isActive = selectedStore && selectedStore.un === code;
+            return `
+            <div class="zone-legend-row ${isActive ? 'active' : ''}" onclick="filterZone('${code}')">
+                <div class="zone-legend-top">
+                    <div class="zone-tag"><span class="zone-swatch" style="background:${z.cor}"></span>${z.nome} (${code})</div>
+                    ${m.criticas ? `<div class="zone-critical">${m.criticas} crítica(s)</div>` : '<div class="zone-critical" style="color:#16a34a">OK</div>'}
+                </div>
+                <div class="zone-legend-metrics">
+                    <div class="zone-legend-metric"><b>${m.vagas}</b><span>Vagas</span></div>
+                    <div class="zone-legend-metric"><b>${m.alocados}</b><span>Alocados</span></div>
+                    <div class="zone-legend-metric"><b>${m.pendentes}</b><span>Pendentes</span></div>
+                    <div class="zone-legend-metric"><b>${m.preenchimento.toFixed(1)}%</b><span>Preench.</span></div>
+                </div>
+                <div class="zone-roles">Cargos pedidos: <b>${m.vagasAgentes}</b> Agentes · <b>${m.vagasTriagistas}</b> Triagistas</div>
+            </div>`;
+        }).join('')}
+        <div class="zone-legend-note">Anel vermelho no marcador da loja = cobertura menor que 50%.</div>
+    `;
+}
+
+function toggleZoneLegend() {
+    zoneLegendCollapsed = !zoneLegendCollapsed;
+    localStorage.setItem('sabesp_zone_legend_collapsed', zoneLegendCollapsed ? '1' : '0');
+    renderZoneLegendMap();
+}
+
+function toggleLegendType(type) {
+    mapLegendFilter[type] = !mapLegendFilter[type];
+    document.getElementById('chip-' + type)?.classList.toggle('active', mapLegendFilter[type]);
+    if (showPromotores) drawPeople();
+}
 
 const layers = {
     clean: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB', maxZoom: 19 }),
@@ -331,10 +645,14 @@ fetch('/web/dados_alocacao.json')
 
 function init() {
     setTimeout(() => map.invalidateSize(), 120);
+    updateMapContext();
+    runDataQualityCheck();
     drawStores();
+    renderZoneLegendMap();
     renderDashboard();
     renderZones();
     renderStoreList();
+    renderExecutive();
     renderSearch();
 }
 
@@ -353,8 +671,11 @@ function drawStores() {
 
     data.lojas.forEach((loja, i) => {
         const num = i + 1;
+        const al = (allocs[loja.nome] || []).length;
+        const ratio = loja.total_hcs ? (al / loja.total_hcs) : 0;
+        const showCriticalRing = ratio < 0.5;
         const icon = L.divIcon({
-            html: `<div style="background:${loja.cor_hex};width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:transform .2s">${num}</div>`,
+            html: `<div style="position:relative;background:${loja.cor_hex};width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:transform .2s">${showCriticalRing ? '<span class="store-critical-ring"></span>' : ''}${num}</div>`,
             className: '', iconSize: [34, 34], iconAnchor: [17, 17]
         });
 
@@ -367,7 +688,7 @@ function drawStores() {
         marker.bindTooltip(`
             <div style="padding:6px 10px;border-left:4px solid ${loja.cor_hex}">
                 <b style="color:${loja.cor_hex}">#${num} ${loja.nome}</b><br>
-                <span style="font-size:11px;color:#6b7280">${loja.zona} · ${loja.total_hcs} vagas</span>
+                <span style="font-size:11px;color:#6b7280">${loja.zona} · ${loja.total_hcs} vagas · Ag ${loja.vagas_agentes || 0} · Tri ${loja.vagas_triagistas || 0}</span>
             </div>`, { direction: 'top', offset: [0, -18], className: '' });
 
         // Popup
@@ -376,6 +697,7 @@ function drawStores() {
     });
 
     storeLayerGroup.addTo(map);
+    renderZoneLegendMap();
 }
 
 // ===== PROMOTORES LAYER =====
@@ -393,13 +715,22 @@ function drawPeople() {
     personMarkers = {};
     if (!showPromotores || !data) return;
 
-    peopleLayerGroup = L.layerGroup();
+    peopleLayerGroup = (L.markerClusterGroup
+        ? L.markerClusterGroup({
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            disableClusteringAtZoom: 14,
+            maxClusterRadius: 40
+        })
+        : L.layerGroup());
     data.funcionarios.forEach(f => {
         if (!f.lat || !f.lng) return;
         const formes = classifyFormes(f.resposta_interesse);
         const allocInfo = getAllocInfo(f.cadastro);
         const colors = { disponivel: '#16a34a', seminteresse: '#dc2626', outras: '#d97706', semresposta: '#94a3b8' };
         const cor = allocInfo ? '#1e40af' : (colors[formes.type] || '#94a3b8');
+        const typeKey = allocInfo ? 'alocado' : formes.type;
+        if (!mapLegendFilter[typeKey]) return;
 
         const icon = L.divIcon({
             html: `<div style="background:${cor};width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);opacity:.8"></div>`,
@@ -525,12 +856,14 @@ function updateRadiusCircle() {
 function toggleRadiusCircle() {
     showRadius = !showRadius;
     updateRadiusCircle();
+    updateMapContext();
     if (selectedStore) renderAllocation();
 }
 
 function buildPopup(loja, num) {
     const al = allocs[loja.nome] || [];
     const rest = loja.total_hcs - al.length;
+    const pct = loja.total_hcs ? ((al.length / loja.total_hcs) * 100).toFixed(1) : '0.0';
     
     // Contagem por distância
     const counts = {};
@@ -558,6 +891,9 @@ function buildPopup(loja, num) {
                 <div class="metric"><div class="metric-val" style="font-size:20px;color:${al.length?'#16a34a':'#9ca3af'}">${al.length}</div><div class="metric-label">Alocados</div></div>
                 <div class="metric"><div class="metric-val" style="font-size:20px;color:${rest?'#dc2626':'#16a34a'}">${rest}</div><div class="metric-label">Restantes</div></div>
             </div>
+            <div style="background:#eff6ff;padding:8px;border-radius:8px;margin-bottom:10px;font-size:11px;color:#1e3a8a;line-height:1.5">
+                <b>Preenchimento:</b> ${pct}% · <b>Cargos pedidos:</b> ${loja.vagas_agentes || 0} Agentes + ${loja.vagas_triagistas || 0} Triagistas
+            </div>
             <div style="background:#f9fafb;padding:10px;border-radius:8px;margin-bottom:12px">
                 <div style="font-size:11px;font-weight:700;color:#4b5563;margin-bottom:6px">👥 Pessoas próximas</div>
                 <div class="dist-grid">
@@ -580,9 +916,10 @@ function buildPopup(loja, num) {
 function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    event?.target?.closest?.('.tab')?.classList.add('active') || document.querySelectorAll('.tab')[['dashboard','zones','stores','search'].indexOf(tab)]?.classList.add('active');
+    event?.target?.closest?.('.tab')?.classList.add('active') || document.querySelectorAll('.tab')[['dashboard','zones','stores','executive','search'].indexOf(tab)]?.classList.add('active');
     document.getElementById('v-' + tab).classList.add('active');
     if (tab === 'stores' && selectedStore) renderAllocation();
+    if (tab === 'executive') renderExecutive();
 }
 
 // ===== DASHBOARD =====
@@ -591,6 +928,11 @@ function renderDashboard() {
     const totalAlloc = Object.values(allocs).reduce((s, a) => s + a.length, 0);
     const pct = totalVagas ? ((totalAlloc / totalVagas) * 100).toFixed(1) : 0;
     const criticas = data.lojas.filter(l => (allocs[l.nome]||[]).length < l.total_hcs * 0.5).length;
+    const lojasSemNinguem = data.lojas.filter(l => countByRadius(l, selectedRadius) === 0).length;
+    const alocadosSemResposta = Object.values(allocs).flat().filter(a => {
+        const f = data.funcionarios.find(x => String(x.cadastro) === String(a.cadastro));
+        return classifyFormes(f?.resposta_interesse || '-').type === 'semresposta';
+    }).length;
 
     // Formes stats
     let fDisp = 0, fSem = 0, fOutras = 0, fNR = 0;
@@ -609,7 +951,25 @@ function renderDashboard() {
         zones[l.un].vagas += l.total_hcs;
     });
 
+    const alerts = [];
+    if (criticas > 0) alerts.push({ type: 'danger', text: `${criticas} lojas estão com cobertura abaixo de 50%.` });
+    if (lojasSemNinguem > 0) alerts.push({ type: 'info', text: `${lojasSemNinguem} lojas sem candidatos no raio de ${selectedRadius}km.` });
+    if (alocadosSemResposta > 0) alerts.push({ type: 'warn', text: `${alocadosSemResposta} alocações com colaboradores sem resposta no Formes.` });
+
     document.getElementById('v-dashboard').innerHTML = `
+        <div class="card">
+            <div class="card-title" style="justify-content:space-between">🧪 Cenários de Simulação
+                <span style="font-size:10px;color:var(--muted)">Ativo: ${currentScenario}</span>
+            </div>
+            <div class="panel-row">
+                ${['A','B','C'].map(s => `<button class="pill-btn ${currentScenario===s?'active':''}" onclick="setScenario('${s}')">Cenário ${s}</button>`).join('')}
+                <button class="pill-btn" onclick="if(confirm('Limpar cenário atual?')){allocs={};saveAllocs();renderDashboard();renderZones();renderStoreList();renderExecutive();}">Limpar Cenário</button>
+            </div>
+            <div class="note-box">Use os cenários para testar estratégias diferentes sem perder o plano principal.</div>
+        </div>
+
+        ${alerts.map(a => `<div class="alert-box ${a.type==='danger'?'danger':a.type==='info'?'info':''}">⚠️ ${a.text}</div>`).join('')}
+
         <div class="card">
             <div class="card-title">📊 Visão Geral</div>
             <div class="metrics">
@@ -650,6 +1010,14 @@ function renderDashboard() {
                     </div>
                 </div>
             `).join('')}
+        </div>
+        <div class="card">
+            <div class="card-title">🧹 Qualidade de Dados</div>
+            <div class="metrics">
+                <div class="metric"><div class="metric-val" style="color:${qualityReport.totalIssues ? '#dc2626' : '#16a34a'}">${qualityReport.totalIssues}</div><div class="metric-label">Issues detectados</div></div>
+                <div class="metric"><div class="metric-val">${data.funcionarios.length}</div><div class="metric-label">Funcionários checados</div></div>
+            </div>
+            ${qualityReport.items.length ? `<div class="note-box" style="margin-top:8px">${qualityReport.items.slice(0,5).map(i => `• ${i}`).join('<br>')}</div>` : `<div class="note-box" style="margin-top:8px;color:#166534;border-color:#bbf7d0;background:#f0fdf4">Sem inconsistências críticas detectadas.</div>`}
         </div>`;
 }
 
@@ -678,9 +1046,51 @@ function renderZones() {
         </div>`;
 }
 
+// ===== EXECUTIVE =====
+function renderExecutive() {
+    const totalVagas = data.lojas.reduce((s, l) => s + l.total_hcs, 0);
+    const totalAlloc = Object.values(allocs).reduce((s, a) => s + a.length, 0);
+    const cobertura = totalVagas ? ((totalAlloc / totalVagas) * 100).toFixed(1) : 0;
+
+    const criticas = data.lojas
+        .map(l => {
+            const al = (allocs[l.nome] || []).length;
+            const pend = l.total_hcs - al;
+            const pct = l.total_hcs ? (al / l.total_hcs) : 0;
+            return { loja: l.nome, pend, pct };
+        })
+        .sort((a, b) => b.pend - a.pend)
+        .slice(0, 8);
+
+    const logs = auditLog.slice(0, 12);
+
+    document.getElementById('v-executive').innerHTML = `
+        <div class="card">
+            <div class="card-title">🎯 Painel Executivo</div>
+            <div class="metrics">
+                <div class="metric"><div class="metric-val">${totalAlloc}</div><div class="metric-label">Alocados</div></div>
+                <div class="metric"><div class="metric-val">${totalVagas - totalAlloc}</div><div class="metric-label">Pendentes</div></div>
+                <div class="metric"><div class="metric-val">${cobertura}%</div><div class="metric-label">Cobertura</div></div>
+                <div class="metric"><div class="metric-val">${auditLog.length}</div><div class="metric-label">Eventos auditados</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🚨 Top Lojas Críticas</div>
+            ${criticas.map((c, idx) => `<div class="store" style="padding:8px 10px;cursor:default"><div class="store-num" style="background:${idx<3?'#dc2626':'#f59e0b'};width:26px;height:26px;font-size:11px">${idx+1}</div><div style="flex:1"><div class="store-name" style="font-size:12px">${c.loja}</div><div class="store-info">Pendentes: ${c.pend} · Cobertura: ${(c.pct*100).toFixed(1)}%</div></div></div>`).join('')}
+        </div>
+
+        <div class="card">
+            <div class="card-title">🧾 Auditoria Recente</div>
+            ${logs.length ? logs.map(l => `<div class="note-box" style="margin-bottom:6px"><b>${new Date(l.ts).toLocaleString('pt-BR')}</b> · [${l.scenario}] ${l.action}<br>${l.loja || ''} ${l.nome || ''} ${l.cadastro ? '('+l.cadastro+')' : ''}</div>`).join('') : '<div class="note-box">Sem eventos registrados ainda.</div>'}
+        </div>`;
+}
+
 // ===== STORE LIST =====
 function renderStoreList() {
     if (selectedStore) { renderAllocation(); return; }
+    updateMapContext();
+    renderZoneLegendMap();
     // Clear radius when going back to list
     if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
     
@@ -729,6 +1139,8 @@ function selectStore(loja) {
     selectedStore = loja;
     map.flyTo([loja.lat, loja.lng], 13, { duration: 1 });
     updateRadiusCircle();
+    updateMapContext();
+    renderZoneLegendMap();
     if (showPromotores) drawPeople();
     renderAllocation();
 }
@@ -769,9 +1181,17 @@ function renderAllocation() {
 
         <div class="card" style="margin-top:12px">
             <div class="card-title">👥 Candidatos no raio de ${selectedRadius}km</div>
+            <div class="panel-row">
+                <button class="pill-btn ${candidateFilters.onlyAvailable?'active':''}" onclick="candidateFilters.onlyAvailable=!candidateFilters.onlyAvailable;renderAllocation()">Só disponíveis</button>
+                <button class="pill-btn ${candidateFilters.onlyUnallocated?'active':''}" onclick="candidateFilters.onlyUnallocated=!candidateFilters.onlyUnallocated;renderAllocation()">Só não alocados</button>
+                <button class="pill-btn ${candidateFilters.sortBy==='score'?'active':''}" onclick="candidateFilters.sortBy='score';renderAllocation()">Ordenar: Score</button>
+                <button class="pill-btn ${candidateFilters.sortBy==='dist'?'active':''}" onclick="candidateFilters.sortBy='dist';renderAllocation()">Ordenar: Distância</button>
+                <button class="pill-btn ${candidateFilters.sortBy==='cost'?'active':''}" onclick="candidateFilters.sortBy='cost';renderAllocation()">Ordenar: Custo</button>
+            </div>
             <div class="radius-btns">
                 ${RAIOS.map(r => `<button class="radius-btn ${r===selectedRadius?'active':''}" onclick="selectedRadius=${r};updateRadiusCircle();renderAllocation()">${r}km <b>${countByRadius(loja, r)}</b></button>`).join('')}
                 <button class="radius-btn ${showRadius?'active':''}" onclick="toggleRadiusCircle()">${showRadius ? 'Raio ON' : 'Raio OFF'}</button>
+                <button class="radius-btn" onclick="suggestAllocationsForStore('${escJs(loja.nome)}')">🤖 Sugerir Alocação</button>
             </div>
             <div class="candidates-toolbar">
                 <div class="mini"><b>${candidates.length}</b><span>Candidatos</span></div>
@@ -801,7 +1221,7 @@ function renderAllocation() {
                         </div>
                         <div class="cand-dist">
                             <b>${c.distancia}km</b>
-                            ~${c.tempo}min
+                            ~${c.tempo}min · ⭐ ${c.score}
                         </div>
                     </div>
                     <div class="cand-meta">
@@ -826,21 +1246,23 @@ function getCandidates(loja) {
         .map(f => {
             const info = f.lojas_proximas.find(l => l.loja_id === loja.id);
             if (!info || info.distancia_km > selectedRadius || info.distancia_km > 50) return null;
+            const score = calcCandidateScore(f, info, loja.id);
             return {
                 ...f,
                 distancia: info.distancia_km,
                 tempo: info.tempo_min,
                 custo: info.custo_mensal,
+                score,
                 temResposta: f.resposta_interesse !== '-'
             };
         })
         .filter(Boolean)
+        .filter(c => !candidateFilters.onlyAvailable || classifyFormes(c.resposta_interesse).type === 'disponivel')
+        .filter(c => !candidateFilters.onlyUnallocated || !isAllocated(c.cadastro))
         .sort((a, b) => {
-            // Priority: disponivel > semresposta > outras > seminteresse, then by distance
-            const order = { disponivel: 0, semresposta: 1, outras: 2, seminteresse: 3 };
-            const fa = classifyFormes(a.resposta_interesse).type;
-            const fb = classifyFormes(b.resposta_interesse).type;
-            if (order[fa] !== order[fb]) return order[fa] - order[fb];
+            if (candidateFilters.sortBy === 'dist') return a.distancia - b.distancia;
+            if (candidateFilters.sortBy === 'cost') return a.custo - b.custo;
+            if (b.score !== a.score) return b.score - a.score;
             return a.distancia - b.distancia;
         });
 }
@@ -850,6 +1272,37 @@ function countByRadius(loja, r) {
         const info = f.lojas_proximas.find(l => l.loja_id === loja.id);
         return info && info.distancia_km <= r;
     }).length;
+}
+
+function suggestAllocationsForStore(lojaNome) {
+    const loja = data.lojas.find(l => l.nome === lojaNome);
+    if (!loja) return;
+
+    const restantes = loja.total_hcs - (allocs[lojaNome] || []).length;
+    if (restantes <= 0) { alert('A loja já está completa.'); return; }
+
+    const pool = getCandidates(loja)
+        .filter(c => !isAllocated(c.cadastro))
+        .filter(c => classifyFormes(c.resposta_interesse).type !== 'seminteresse')
+        .sort((a, b) => b.score - a.score)
+        .slice(0, restantes);
+
+    if (!pool.length) { alert('Sem candidatos elegíveis para sugestão automática.'); return; }
+
+    if (!confirm(`Aplicar ${pool.length} sugestão(ões) automáticas para ${lojaNome}?`)) return;
+    if (!allocs[lojaNome]) allocs[lojaNome] = [];
+
+    pool.forEach(c => {
+        allocs[lojaNome].push({ cadastro: c.cadastro, nome: c.nome, distancia: c.distancia, score: c.score, sugestao_auto: true });
+        logAudit('SUGESTAO_AUTO_APLICADA', { loja: lojaNome, cadastro: c.cadastro, nome: c.nome, score: c.score });
+    });
+
+    saveAllocs();
+    drawStores();
+    renderAllocation();
+    renderDashboard();
+    renderExecutive();
+    if (showPromotores) drawPeople();
 }
 
 // ===== ALLOC ACTIONS =====
@@ -867,35 +1320,53 @@ function allocate(lojaNome, cadastro, nome, dist) {
     const loja = data.lojas.find(l => l.nome === lojaNome);
     if (loja && allocs[lojaNome].length >= loja.total_hcs) { alert('Loja já está completa!'); return; }
     allocs[lojaNome].push({ cadastro, nome, distancia: dist });
+    logAudit('ALLOCATE', { loja: lojaNome, cadastro, nome, distancia: dist });
     saveAllocs();
+    drawStores();
+    updateMapContext();
     renderAllocation();
     renderDashboard();
+    renderExecutive();
     if (showPromotores) drawPeople();
 }
 
 function deallocate(lojaNome, cadastro) {
     if (!allocs[lojaNome]) return;
+    const found = (allocs[lojaNome] || []).find(a => String(a.cadastro) === String(cadastro));
     const cadastroKey = String(cadastro);
     allocs[lojaNome] = allocs[lojaNome].filter(a => String(a.cadastro) !== cadastroKey);
     if (!allocs[lojaNome].length) delete allocs[lojaNome];
+    logAudit('DEALLOCATE', { loja: lojaNome, cadastro, nome: found?.nome || '' });
     saveAllocs();
+    drawStores();
+    updateMapContext();
     renderAllocation();
     renderDashboard();
+    renderExecutive();
     if (showPromotores) drawPeople();
 }
 
 function clearAllocs() {
     if (!confirm('Limpar TODAS as alocações?')) return;
     allocs = {};
+    logAudit('CLEAR_ALLOCS', { loja: 'GLOBAL' });
     saveAllocs();
     selectedStore = null;
+    drawStores();
+    updateMapContext();
     renderStoreList();
     renderDashboard();
     renderZones();
+    renderExecutive();
     if (showPromotores) drawPeople();
 }
 
-function saveAllocs() { localStorage.setItem('sabesp_allocs', JSON.stringify(allocs)); }
+function saveAllocs() {
+    scenarioStore[currentScenario] = JSON.parse(JSON.stringify(allocs));
+    localStorage.setItem('sabesp_allocs', JSON.stringify(allocs));
+    localStorage.setItem('sabesp_scenarios', JSON.stringify(scenarioStore));
+    localStorage.setItem('sabesp_current_scenario', currentScenario);
+}
 
 // ===== SEARCH (with full analytical person card) =====
 function renderSearch() {
@@ -909,7 +1380,7 @@ function renderSearch() {
 function searchPeople(term) {
     if (term.length < 2) { document.getElementById('people-results').innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>Digite pelo menos 2 caracteres</div>'; return; }
     const t = term.toLowerCase();
-    const results = data.funcionarios.filter(f => f.nome.toLowerCase().includes(t) || f.cadastro.includes(t) || f.cidade.toLowerCase().includes(t)).slice(0, 20);
+    const results = data.funcionarios.filter(f => f.nome.toLowerCase().includes(t) || String(f.cadastro).toLowerCase().includes(t) || f.cidade.toLowerCase().includes(t)).slice(0, 20);
     
     document.getElementById('people-results').innerHTML = results.length ? results.map(f => {
         return `<div class="person-card" onclick="focusPerson('${f.cadastro}')">
@@ -971,6 +1442,34 @@ function exportExcel() {
         porLoja.push([l.nome, l.zona, l.total_hcs, al, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1)+'%' : '0%', disp10, disp20, prox10.length, prox20.length]);
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(porLoja), 'Análise por Loja');
+
+    // Sheet 5: Contato Prioritário
+    const prioritario = [['Cadastro', 'Nome', 'Cidade', 'Loja Recomendada', 'Distância (km)', 'Score', 'Formes']];
+    data.funcionarios.forEach(f => {
+        const top = (f.lojas_proximas || [])[0];
+        if (!top) return;
+        const score = calcCandidateScore(f, top, top.loja_id);
+        prioritario.push([f.cadastro, f.nome, f.cidade, top.loja_nome, top.distancia_km, score, classifyFormes(f.resposta_interesse).label]);
+    });
+    prioritario.splice(1, prioritario.length - 1, ...prioritario.slice(1).sort((a, b) => b[5] - a[5]).slice(0, 200));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(prioritario), 'Contato Prioritário');
+
+    // Sheet 6: Pendências Críticas
+    const pendencias = [['Loja', 'Zona', 'Vagas', 'Alocados', 'Pendentes', 'Cobertura %']];
+    data.lojas.forEach(l => {
+        const al = (allocs[l.nome]||[]).length;
+        const pend = l.total_hcs - al;
+        pendencias.push([l.nome, l.zona, l.total_hcs, al, pend, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1) : '0']);
+    });
+    pendencias.splice(1, pendencias.length - 1, ...pendencias.slice(1).sort((a, b) => b[4] - a[4]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pendencias), 'Pendências Críticas');
+
+    // Sheet 7: Auditoria
+    const auditoria = [['DataHora', 'Cenário', 'Ação', 'Loja', 'Nome', 'Cadastro', 'Score', 'Distância']];
+    auditLog.slice(0, 500).forEach(e => {
+        auditoria.push([new Date(e.ts).toLocaleString('pt-BR'), e.scenario || '', e.action || '', e.loja || '', e.nome || '', e.cadastro || '', e.score || '', e.distancia || '']);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(auditoria), 'Auditoria');
 
     XLSX.writeFile(wb, `SABESP_Alocacao_${new Date().toISOString().slice(0,10)}.xlsx`);
 }

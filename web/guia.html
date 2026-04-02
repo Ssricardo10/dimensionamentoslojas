@@ -330,6 +330,7 @@
 
     <section class="sections">
         <nav class="section-nav">
+            <a href="#novidades">✨ Novidades da versão</a>
             <a href="#jornada">🧭 Jornada de uso</a>
             <a href="#botoes">🕹️ O que cada botão faz</a>
             <a href="#kpis">📊 Como ler KPIs</a>
@@ -339,6 +340,26 @@
         </nav>
 
         <div class="content">
+            <article class="card" id="novidades">
+                <h3>✨ Novidades da versão</h3>
+                <p>O sistema evoluiu para apoiar decisão mais rápida, com simulação, priorização automática e leitura executiva.</p>
+                <div class="filters">
+                    <div class="filter-item"><b>Cenários A/B/C:</b> monte planos alternativos sem perder o plano atual.</div>
+                    <div class="filter-item"><b>Score do candidato (0-100):</b> prioridade automática combinando distância, custo e Formes.</div>
+                    <div class="filter-item"><b>🤖 Sugerir Alocação:</b> preenche automaticamente as vagas da loja com os melhores elegíveis.</div>
+                    <div class="filter-item"><b>Aba Executivo:</b> visão de cobertura, pendências críticas e auditoria recente.</div>
+                    <div class="filter-item"><b>Barra de contexto no mapa:</b> mostra cenário, raio e status da loja selecionada.</div>
+                    <div class="filter-item"><b>Legenda viva:</b> liga/desliga categorias de pontos (disponíveis, sem resposta, alocados etc).</div>
+                    <div class="filter-item"><b>Legenda de zonas no mapa:</b> mostra cor da zona, vagas, alocados, pendentes, % de preenchimento e cargos pedidos.</div>
+                    <div class="filter-item"><b>Cluster de promotores:</b> agrupa pontos quando o zoom está afastado para mapa mais limpo.</div>
+                    <div class="filter-item"><b>Destaque de criticidade:</b> lojas com baixa cobertura aparecem com anel visual pulsante.</div>
+                    <div class="filter-item"><b>Alertas operacionais:</b> destaque de risco para ação imediata.</div>
+                    <div class="filter-item"><b>Qualidade de dados:</b> valida duplicidade de cadastro e ausência de geolocalização.</div>
+                    <div class="filter-item"><b>Auditoria local:</b> histórico de alocar, remover, limpar e sugestões automáticas.</div>
+                    <div class="filter-item"><b>Export avançado:</b> novas abas de Contato Prioritário, Pendências Críticas e Auditoria.</div>
+                </div>
+            </article>
+
             <article class="card" id="jornada">
                 <h3>🧭 Jornada de uso (história prática)</h3>
                 <p>Vamos simular a Ana, coordenadora, abrindo a plataforma para fechar alocações do dia.</p>
@@ -355,13 +376,20 @@
                 <h3>🕹️ O que cada botão faz (na prática)</h3>
                 <div class="controls-grid">
                     <div class="control"><b>Limpo / Ruas / Satélite</b><br>Troca o tipo de base do mapa para facilitar leitura de contexto urbano.</div>
+                    <div class="control"><b>Legenda Viva</b><br>Filtra visualmente tipos de promotores direto no mapa.</div>
+                    <div class="control"><b>Legenda de Zonas</b><br>Mostra cores das zonas e KPI operacional (vagas, alocados, pendentes e preenchimento).</div>
+                    <div class="control"><b>Ocultar / Expandir Zonas</b><br>Recolhe o quadro de zonas para liberar área do mapa e expande quando precisar.</div>
                     <div class="control"><b>Promotores</b><br>Liga ou desliga os pontos dos profissionais no mapa.</div>
+                    <div class="control"><b>Barra de Contexto</b><br>Mostra cenário ativo, raio e situação da loja selecionada.</div>
                     <div class="control"><b>Dashboard / Zonas / Lojas / Busca</b><br>Alterna o foco da análise sem sair da tela principal.</div>
+                    <div class="control"><b>Aba Executivo</b><br>Mostra visão gerencial consolidada com pendências e auditoria recente.</div>
                     <div class="control"><b>Raio (5km a 50km)</b><br>Filtra candidatos por alcance geográfico da loja.</div>
                     <div class="control"><b>Raio ON/OFF</b><br>Mostra ou oculta o círculo de referência visual.</div>
                     <div class="control"><b>📍 Ver mapa</b><br>Foca no candidato no mapa para validação visual imediata.</div>
                     <div class="control"><b>Alocar / Remover</b><br>Inclui ou retira o candidato do plano atual da loja.</div>
-                    <div class="control"><b>Excel / Limpar</b><br>Exporta relatório consolidado ou reinicia alocações locais.</div>
+                    <div class="control"><b>🤖 Sugerir Alocação</b><br>Aplica automaticamente os melhores candidatos para fechar vagas restantes.</div>
+                    <div class="control"><b>Cenário A/B/C</b><br>Troca o plano ativo para comparar estratégias sem misturar alocações.</div>
+                    <div class="control"><b>Excel / Limpar</b><br>Exporta relatório consolidado ou reinicia alocações locais do cenário ativo.</div>
                 </div>
             </article>
 
@@ -377,6 +405,8 @@
                     <div class="kpi"><div class="name">Pendentes</div><div class="help">O que ainda falta fechar para completar cobertura.</div></div>
                     <div class="kpi"><div class="name">% Ocupação</div><div class="help">Ritmo geral de preenchimento das vagas.</div></div>
                     <div class="kpi"><div class="name">Lojas Críticas</div><div class="help">Lojas com maior risco operacional por baixa cobertura.</div></div>
+                    <div class="kpi"><div class="name">Issues de Qualidade</div><div class="help">Quantidade de inconsistências detectadas nos dados.</div></div>
+                    <div class="kpi"><div class="name">Eventos Auditados</div><div class="help">Ações registradas para rastreabilidade operacional.</div></div>
                 </div>
             </article>
 
@@ -386,12 +416,17 @@
                     <div class="filter-item"><b>Filtro de lojas:</b> busca por nome, zona, UN e endereço para chegar rápido no ponto certo.</div>
                     <div class="filter-item"><b>Filtro por zona:</b> concentra sua visão num território específico.</div>
                     <div class="filter-item"><b>Filtro por raio:</b> abre ou fecha o funil de candidatos por distância real.</div>
+                    <div class="filter-item"><b>Só disponíveis:</b> mostra apenas candidatos com maior chance de conversão.</div>
+                    <div class="filter-item"><b>Só não alocados:</b> remove da lista quem já foi usado em outra loja.</div>
+                    <div class="filter-item"><b>Ordenação por score/distância/custo:</b> muda o critério de priorização instantaneamente.</div>
+                    <div class="filter-item"><b>Filtro visual da legenda:</b> oculta ou mostra categorias de pontos sem mexer nos dados base.</div>
                     <div class="filter-item"><b>Busca por pessoa:</b> encontra funcionário por nome, cadastro ou cidade.</div>
                     <div class="filter-item"><b>Classificação Formes:</b> ajuda a priorizar quem tem maior chance de conversão.</div>
                     <div class="filter-item"><b>Persistência local:</b> suas alocações ficam salvas no navegador atual.</div>
                 </div>
                 <div class="badges">
                     <span class="badge b-ok">Dica: comece por Dashboard</span>
+                    <span class="badge b-ok">Dica: compare cenário A/B/C antes de fechar</span>
                     <span class="badge b-warn">Dica: ajuste o raio antes de decidir</span>
                     <span class="badge b-danger">Atenção: limpar apaga o plano local</span>
                     <span class="badge b-info">Obs: não sincroniza entre usuários</span>
@@ -407,6 +442,22 @@
                 <details>
                     <summary>Posso alocar só pela menor distância?</summary>
                     <p>Use distância como ponto de partida, mas valide Formes, status e aderência operacional da loja.</p>
+                </details>
+                <details>
+                    <summary>Como funcionam os cenários A/B/C?</summary>
+                    <p>São 3 planos independentes no mesmo navegador. Você pode montar estratégias diferentes e comparar sem sobrescrever o plano base.</p>
+                </details>
+                <details>
+                    <summary>Por que agora os promotores aparecem em bolhas agrupadas?</summary>
+                    <p>É o cluster automático. Quando o zoom está afastado, os pontos agrupam para melhorar leitura; ao aproximar, eles se separam novamente.</p>
+                </details>
+                <details>
+                    <summary>Como vejo cargos que cada loja pede?</summary>
+                    <p>No popup da loja e na barra de contexto você vê agentes/triagistas; na legenda de zonas também aparece o consolidado por território.</p>
+                </details>
+                <details>
+                    <summary>O que o score representa?</summary>
+                    <p>É um índice de prioridade do candidato (0 a 100), combinando distância, custo e resposta do Formes para acelerar decisão.</p>
                 </details>
                 <details>
                     <summary>Se eu apagar tudo, todo mundo perde?</summary>
