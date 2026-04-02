@@ -238,6 +238,7 @@ let map, storeLayerGroup, peopleLayerGroup, radiusCircle;
 let allocs = JSON.parse(localStorage.getItem('sabesp_allocs') || '{}');
 let selectedStore = null;
 let selectedRadius = 15;
+let showRadius = true;
 let showPromotores = false;
 const RAIOS = [5, 10, 15, 20, 25, 30, 40, 50];
 
@@ -259,8 +260,9 @@ function classifyFormes(resp) {
 }
 
 function getAllocInfo(cadastro) {
+    const cadastroKey = String(cadastro);
     for (const [lojaNome, list] of Object.entries(allocs)) {
-        const found = list.find(a => a.cadastro === cadastro);
+        const found = list.find(a => String(a.cadastro) === cadastroKey);
         if (found) return { loja: lojaNome, distancia: found.distancia };
     }
     return null;
@@ -414,7 +416,8 @@ function drawPeople() {
 
 // ===== FOCUS PERSON ON MAP =====
 function focusPerson(cadastro) {
-    const f = data.funcionarios.find(x => x.cadastro === cadastro);
+    const cadastroKey = String(cadastro);
+    const f = data.funcionarios.find(x => String(x.cadastro) === cadastroKey);
     if (!f || !f.lat || !f.lng) return;
 
     // Enable promotores layer if not active
@@ -495,7 +498,7 @@ function focusPerson(cadastro) {
 // ===== RADIUS CIRCLE =====
 function updateRadiusCircle() {
     if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
-    if (!selectedStore) return;
+    if (!selectedStore || !showRadius) return;
     radiusCircle = L.circle([selectedStore.lat, selectedStore.lng], {
         radius: selectedRadius * 1000,
         color: selectedStore.cor_hex,
@@ -505,6 +508,12 @@ function updateRadiusCircle() {
         dashArray: '8, 6',
         interactive: false
     }).addTo(map);
+}
+
+function toggleRadiusCircle() {
+    showRadius = !showRadius;
+    updateRadiusCircle();
+    if (selectedStore) renderAllocation();
 }
 
 function buildPopup(loja, num) {
@@ -748,6 +757,7 @@ function renderAllocation() {
             <div class="card-title">👥 Candidatos no raio de ${selectedRadius}km</div>
             <div class="radius-btns">
                 ${RAIOS.map(r => `<button class="radius-btn ${r===selectedRadius?'active':''}" onclick="selectedRadius=${r};updateRadiusCircle();renderAllocation()">${r}km <b>${countByRadius(loja, r)}</b></button>`).join('')}
+                <button class="radius-btn ${showRadius?'active':''}" onclick="toggleRadiusCircle()">${showRadius ? 'Raio ON' : 'Raio OFF'}</button>
             </div>
             ${candidates.length ? candidates.slice(0, 50).map(c => {
                 const formes = classifyFormes(c.resposta_interesse);
@@ -755,7 +765,7 @@ function renderAllocation() {
                 const top = c.lojas_proximas[0];
                 const isThisBest = top && top.loja_id === loja.id;
                 return `
-                <div class="candidate">
+                <div class="candidate" onclick="focusPerson('${c.cadastro}')">
                     <div class="cand-top">
                         <div style="flex:1">
                             <div class="cand-name">
@@ -818,7 +828,8 @@ function countByRadius(loja, r) {
 
 // ===== ALLOC ACTIONS =====
 function isAllocated(cadastro) {
-    return Object.values(allocs).some(list => list.some(a => a.cadastro === cadastro));
+    const cadastroKey = String(cadastro);
+    return Object.values(allocs).some(list => list.some(a => String(a.cadastro) === cadastroKey));
 }
 
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
@@ -838,7 +849,8 @@ function allocate(lojaNome, cadastro, nome, dist) {
 
 function deallocate(lojaNome, cadastro) {
     if (!allocs[lojaNome]) return;
-    allocs[lojaNome] = allocs[lojaNome].filter(a => a.cadastro !== cadastro);
+    const cadastroKey = String(cadastro);
+    allocs[lojaNome] = allocs[lojaNome].filter(a => String(a.cadastro) !== cadastroKey);
     if (!allocs[lojaNome].length) delete allocs[lojaNome];
     saveAllocs();
     renderAllocation();
