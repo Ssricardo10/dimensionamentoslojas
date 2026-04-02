@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SABESP - Gestão de Alocação</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f0f2f5; --card: #fff; --text: #1a1a2e; --muted: #6b7280;
+            --primary: #667eea; --accent: #764ba2;
+            --ol: #e74c3c; --on: #3498db; --oc: #9b59b6; --os: #27ae60; --oo: #f39c12;
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); overflow: hidden; height: 100vh; }
+        
+        /* Layout */
+        .app { display: flex; height: 100vh; }
+        #map { flex: 1; z-index: 1; }
+        .sidebar { width: 440px; background: var(--card); box-shadow: -2px 0 12px rgba(0,0,0,.08); display: flex; flex-direction: column; z-index: 2; overflow: hidden; }
+        
+        /* Header */
+        .header { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; padding: 16px 20px; }
+        .header h1 { font-size: 18px; font-weight: 700; }
+        .header p { font-size: 12px; opacity: .85; margin-top: 2px; }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 2px solid #e5e7eb; background: #fafbfc; }
+        .tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+        .tab:hover { color: var(--text); background: #f3f4f6; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab .icon { font-size: 16px; display: block; margin-bottom: 2px; }
+        
+        /* Content */
+        .content { flex: 1; overflow-y: auto; padding: 16px; }
+        .view { display: none; }
+        .view.active { display: block; }
+        
+        /* Cards */
+        .card { background: var(--card); border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        
+        /* Metrics grid */
+        .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .metric { background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #f3f4f6; }
+        .metric-val { font-size: 24px; font-weight: 800; color: var(--primary); }
+        .metric-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .metric-sub { font-size: 10px; color: #9ca3af; }
+        
+        /* Zone cards */
+        .zone { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all .15s; border-left: 4px solid; }
+        .zone:hover { background: #f3f4f6; transform: translateX(2px); }
+        .zone-name { font-size: 13px; font-weight: 600; flex: 1; }
+        .zone-stats { display: flex; gap: 12px; font-size: 11px; color: var(--muted); }
+        .zone-stat b { display: block; font-size: 15px; color: var(--text); text-align: center; }
+        
+        /* Store list */
+        .store { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; cursor: pointer; transition: all .15s; margin-bottom: 4px; }
+        .store:hover { background: #f3f4f6; }
+        .store-num { width: 32px; height: 32px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .store-name { font-size: 13px; font-weight: 600; color: var(--text); }
+        .store-info { font-size: 11px; color: var(--muted); }
+        .store-badges { display: flex; gap: 4px; margin-top: 2px; flex-wrap: wrap; }
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .badge-vagas { background: #fef3c7; color: #92400e; }
+        .badge-status { background: #fce7f3; color: #9d174d; }
+        
+        /* Search */
+        .search { width: 100%; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; outline: none; margin-bottom: 12px; }
+        .search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102,126,234,.15); }
+        
+        /* Allocation panel */
+        .alloc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .alloc-header h3 { font-size: 15px; font-weight: 700; flex: 1; }
+        .radius-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+        .radius-btn { padding: 4px 10px; border-radius: 16px; border: 1px solid #e5e7eb; font-size: 11px; cursor: pointer; background: #fff; transition: all .15s; }
+        .radius-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        
+        /* Candidate list */
+        .candidate { padding: 10px; border-radius: 8px; margin-bottom: 6px; transition: all .15s; border: 1px solid #f3f4f6; }
+        .candidate:hover { background: #f9fafb; border-color: #e5e7eb; }
+        .cand-top { display: flex; align-items: center; gap: 8px; }
+        .cand-name { font-size: 12px; font-weight: 700; color: var(--text); flex: 1; }
+        .cand-dist { font-size: 11px; color: var(--muted); text-align: right; }
+        .cand-dist b { display: block; font-size: 13px; color: var(--text); }
+        .cand-detail { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+        .cand-obs { margin-top: 6px; padding: 6px 8px; border-radius: 6px; font-size: 10px; line-height: 1.4; }
+        .btn { padding: 6px 12px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; }
+        .btn-alloc { background: var(--primary); color: #fff; }
+        .btn-alloc:hover { opacity: .9; }
+        .btn-remove { background: #fee2e2; color: #dc2626; }
+        .btn-remove:hover { background: #fecaca; }
+        .btn-export { background: #d1fae5; color: #065f46; }
+        .btn-clear { background: #fee2e2; color: #991b1b; }
+        
+        /* Allocated section */
+        .allocated { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-top: 12px; }
+        .allocated-title { font-size: 12px; font-weight: 700; color: #166534; margin-bottom: 8px; }
+        .allocated-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
+        .allocated-item .name { flex: 1; }
+        
+        /* Progress bar */
+        .progress-wrap { background: #e5e7eb; border-radius: 99px; height: 8px; margin-top: 8px; overflow: hidden; }
+        .progress-bar { background: linear-gradient(90deg, var(--primary), var(--accent)); height: 100%; border-radius: 99px; transition: width .5s; }
+        
+        /* Distance grid in popup */
+        .dist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 8px 0; }
+        .dist-cell { background: #f9fafb; border-radius: 4px; padding: 4px; text-align: center; font-size: 10px; }
+        .dist-cell b { display: block; font-size: 13px; }
+        
+        /* Map controls - MOVED to top-right to avoid zoom overlap */
+        .map-layers { position: absolute; top: 12px; right: 432px; z-index: 999; display: flex; gap: 4px; }
+        .map-layer-btn { padding: 8px 14px; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+        .map-layer-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        /* Toggle promotores */
+        .map-toggle { position: absolute; bottom: 30px; left: 12px; z-index: 999; display: flex; gap: 4px; flex-direction: column; }
+        .map-toggle-btn { padding: 8px 14px; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.1); display: flex; align-items: center; gap: 6px; }
+        .map-toggle-btn.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .map-toggle-btn .dot { width: 8px; height: 8px; border-radius: 50%; }
+        
+        /* Empty state */
+        .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+        .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        
+        /* Popup override */
+        .leaflet-popup-content-wrapper { border-radius: 12px !important; padding: 0 !important; overflow: hidden; }
+        .leaflet-popup-content { margin: 0 !important; width: auto !important; }
+        
+        /* Person card (search & candidates) */
+        .person-card { background: var(--card); border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+        .person-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px; }
+        .person-summary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 11px; line-height: 1.6; }
+        .person-summary .label { color: #64748b; font-weight: 600; }
+        .person-summary .val { color: var(--text); font-weight: 700; }
+        .obs-formes { margin-top: 6px; padding: 8px 10px; border-radius: 6px; font-size: 11px; border-left: 3px solid; }
+        .obs-disponivel { background: #f0fdf4; border-color: #16a34a; color: #166534; }
+        .obs-seminteresse { background: #fef2f2; border-color: #dc2626; color: #991b1b; }
+        .obs-outras { background: #fffbeb; border-color: #d97706; color: #92400e; }
+        .obs-semresposta { background: #f8fafc; border-color: #94a3b8; color: #64748b; }
+        
+        /* Scrollbar */
+        .content::-webkit-scrollbar { width: 6px; }
+        .content::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+        /* Person highlight on map */
+        .person-highlight {
+            animation: pulse-ring 1.5s ease-out infinite;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(30,64,175,.6); }
+            70% { box-shadow: 0 0 0 18px rgba(30,64,175,0); }
+            100% { box-shadow: 0 0 0 0 rgba(30,64,175,0); }
+        }
+        @keyframes bounce-in {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.4); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .person-pin {
+            animation: bounce-in .4s ease-out;
+        }
+
+        /* Clickable person rows */
+        .person-card { cursor: pointer; transition: all .2s; }
+        .person-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(102,126,234,.15); }
+        .candidate { cursor: pointer; }
+
+        /* Footer */
+        .footer { background: #f8fafc; border-top: 1px solid #e5e7eb; padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8; }
+        .footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+        .footer .dev { display: flex; align-items: center; gap: 6px; }
+        .footer .pulse { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; animation: pulse-ring 2s infinite; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Map -->
+        <div id="map">
+            <div class="map-layers">
+                <button class="map-layer-btn active" onclick="setLayer('clean')">Limpo</button>
+                <button class="map-layer-btn" onclick="setLayer('streets')">Ruas</button>
+                <button class="map-layer-btn" onclick="setLayer('satellite')">Satélite</button>
+            </div>
+            <div class="map-toggle">
+                <button class="map-toggle-btn" id="btn-promotores" onclick="togglePromotores()">
+                    <span class="dot" style="background:#1e40af"></span> Promotores
+                </button>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="header">
+                <h1>⚡ Sistema de Gestão SABESP</h1>
+                <p>Alocação Inteligente por Proximidade</p>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('dashboard')"><span class="icon">📊</span>Dashboard</div>
+                <div class="tab" onclick="switchTab('zones')"><span class="icon">🗺️</span>Zonas</div>
+                <div class="tab" onclick="switchTab('stores')"><span class="icon">🏢</span>Lojas</div>
+                <div class="tab" onclick="switchTab('search')"><span class="icon">🔍</span>Busca</div>
+            </div>
+            
+            <div class="content">
+                <div id="v-dashboard" class="view active"></div>
+                <div id="v-zones" class="view"></div>
+                <div id="v-stores" class="view"></div>
+                <div id="v-search" class="view"></div>
+            </div>
+            <div class="footer">
+                <div class="dev"><span class="pulse"></span> Desenvolvido por <b style="color:var(--text);margin:0 3px">Samuel Ricardo</b> · Analista de Business Intelligence Trade</div>
+                <div>SABESP v3.0</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ===== STATE =====
+let data = null;
+let map, storeLayerGroup, peopleLayerGroup, radiusCircle;
+let allocs = JSON.parse(localStorage.getItem('sabesp_allocs') || '{}');
+let selectedStore = null;
+let selectedRadius = 15;
+let showPromotores = false;
+const RAIOS = [5, 10, 15, 20, 25, 30, 40, 50];
+
+const layers = {
+    clean: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB', maxZoom: 19 }),
+    streets: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', maxZoom: 19 }),
+};
+let activeLayer = 'clean';
+
+// ===== FORMES INTELLIGENCE =====
+function classifyFormes(resp) {
+    if (!resp || resp === '-') return { type: 'semresposta', label: 'Sem resposta', icon: '⚪', css: 'obs-semresposta', tip: 'Não respondeu ao formulário. Contatar para validação.' };
+    const r = resp.toLowerCase();
+    if (r.includes('não tenho interesse')) return { type: 'seminteresse', label: 'Sem interesse', icon: '🔴', css: 'obs-seminteresse', tip: 'Declarou NÃO ter interesse em continuar. Descartar para alocação SABESP.' };
+    if (r.includes('outras oportunidades')) return { type: 'outras', label: 'Quer outras oportunidades', icon: '🟡', css: 'obs-outras', tip: 'Interesse em atuar em OUTRO projeto/cliente. Pode ser redirecionado se não houver vaga ideal.' };
+    // Has schedule = available
+    return { type: 'disponivel', label: resp, icon: '🟢', css: 'obs-disponivel', tip: 'Disponível com horário definido. Prioridade para alocação.' };
+}
+
+function getAllocInfo(cadastro) {
+    for (const [lojaNome, list] of Object.entries(allocs)) {
+        const found = list.find(a => a.cadastro === cadastro);
+        if (found) return { loja: lojaNome, distancia: found.distancia };
+    }
+    return null;
+}
+
+function buildPersonSummary(f) {
+    const formes = classifyFormes(f.resposta_interesse);
+    const allocInfo = getAllocInfo(f.cadastro);
+    const top = f.lojas_proximas[0];
+    const top3 = f.lojas_proximas.slice(0, 3);
+    const bestCost = f.lojas_proximas.reduce((best, l) => !best || l.custo_mensal < best.custo_mensal ? l : best, null);
+    const lojasAte10 = f.lojas_proximas.filter(l => l.distancia_km <= 10).length;
+    const lojasAte20 = f.lojas_proximas.filter(l => l.distancia_km <= 20).length;
+
+    let html = '';
+    
+    // Allocation status
+    if (allocInfo) {
+        html += `<div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px;color:#1e40af;font-weight:600">📌 ALOCADO EM: ${allocInfo.loja} (${allocInfo.distancia}km)</div>`;
+    }
+
+    // Summary block
+    html += `<div class="person-summary">
+        <div style="margin-bottom:6px;font-weight:700;color:var(--text)">📋 Análise do Candidato</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px">
+            <div><span class="label">Mais próxima:</span> <span class="val">${top ? top.loja_nome : 'N/A'}</span></div>
+            <div><span class="label">Distância:</span> <span class="val">${top ? top.distancia_km+'km' : 'N/A'}</span></div>
+            <div><span class="label">Menor custo:</span> <span class="val">${bestCost ? 'R$'+bestCost.custo_mensal+'/mês' : 'N/A'}</span></div>
+            <div><span class="label">Loja:</span> <span class="val">${bestCost ? bestCost.loja_nome : 'N/A'}</span></div>
+            <div><span class="label">Lojas ≤10km:</span> <span class="val">${lojasAte10}</span></div>
+            <div><span class="label">Lojas ≤20km:</span> <span class="val">${lojasAte20}</span></div>
+        </div>
+        <div style="margin-top:6px"><span class="label">Top 3:</span></div>
+        ${top3.map((l, i) => `<div style="padding:1px 0">  ${i+1}. ${l.loja_nome} — <b>${l.distancia_km}km</b> · ~${l.tempo_min}min · R$${l.custo_mensal}/mês</div>`).join('')}
+    </div>`;
+
+    // Formes observation
+    html += `<div class="obs-formes ${formes.css}">
+        <div style="font-weight:700;margin-bottom:2px">${formes.icon} Resposta Formes: ${formes.label}</div>
+        <div style="font-style:italic">${formes.tip}</div>
+    </div>`;
+
+    return html;
+}
+
+// ===== INIT =====
+map = L.map('map', { zoomControl: true, zoomControlPosition: 'topleft' }).setView([-23.55, -46.63], 10);
+layers.clean.addTo(map);
+map.zoomControl.setPosition('topleft');
+
+fetch('../output/dados_alocacao.json')
+    .then(r => r.json())
+    .then(d => { data = d; init(); })
+    .catch(e => alert('Erro ao carregar dados: ' + e.message));
+
+function init() {
+    drawStores();
+    renderDashboard();
+    renderZones();
+    renderStoreList();
+    renderSearch();
+}
+
+// ===== MAP =====
+function setLayer(name) {
+    map.removeLayer(layers[activeLayer]);
+    layers[name].addTo(map);
+    activeLayer = name;
+    document.querySelectorAll('.map-layer-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+function drawStores() {
+    if (storeLayerGroup) map.removeLayer(storeLayerGroup);
+    storeLayerGroup = L.layerGroup();
+
+    data.lojas.forEach((loja, i) => {
+        const num = i + 1;
+        const icon = L.divIcon({
+            html: `<div style="background:${loja.cor_hex};width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:transform .2s">${num}</div>`,
+            className: '', iconSize: [34, 34], iconAnchor: [17, 17]
+        });
+
+        const marker = L.marker([loja.lat, loja.lng], { icon })
+            .on('click', () => selectStore(loja))
+            .on('mouseover', function() { this._icon.firstChild.style.transform = 'scale(1.2)'; })
+            .on('mouseout', function() { this._icon.firstChild.style.transform = 'scale(1)'; });
+
+        // Tooltip
+        marker.bindTooltip(`
+            <div style="padding:6px 10px;border-left:4px solid ${loja.cor_hex}">
+                <b style="color:${loja.cor_hex}">#${num} ${loja.nome}</b><br>
+                <span style="font-size:11px;color:#6b7280">${loja.zona} · ${loja.total_hcs} vagas</span>
+            </div>`, { direction: 'top', offset: [0, -18], className: '' });
+
+        // Popup
+        marker.bindPopup(() => buildPopup(loja, num), { maxWidth: 380, className: '' });
+        marker.addTo(storeLayerGroup);
+    });
+
+    storeLayerGroup.addTo(map);
+}
+
+// ===== PROMOTORES LAYER =====
+let personMarkers = {}; // cadastro -> marker ref
+let highlightMarker = null; // current highlighted person
+
+function togglePromotores() {
+    showPromotores = !showPromotores;
+    document.getElementById('btn-promotores').classList.toggle('active', showPromotores);
+    drawPeople();
+}
+
+function drawPeople() {
+    if (peopleLayerGroup) { map.removeLayer(peopleLayerGroup); peopleLayerGroup = null; }
+    personMarkers = {};
+    if (!showPromotores || !data) return;
+
+    peopleLayerGroup = L.layerGroup();
+    data.funcionarios.forEach(f => {
+        if (!f.lat || !f.lng) return;
+        const formes = classifyFormes(f.resposta_interesse);
+        const allocInfo = getAllocInfo(f.cadastro);
+        const colors = { disponivel: '#16a34a', seminteresse: '#dc2626', outras: '#d97706', semresposta: '#94a3b8' };
+        const cor = allocInfo ? '#1e40af' : (colors[formes.type] || '#94a3b8');
+
+        const icon = L.divIcon({
+            html: `<div style="background:${cor};width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);opacity:.8"></div>`,
+            className: '', iconSize: [10, 10], iconAnchor: [5, 5]
+        });
+
+        const marker = L.marker([f.lat, f.lng], { icon });
+        marker.on('click', () => focusPerson(f.cadastro));
+        
+        // Tooltip
+        const top = f.lojas_proximas[0];
+        let ttip = `<div style="padding:6px 10px;max-width:280px">
+            <b>${f.nome}</b> <span style="font-size:10px;color:#6b7280">(${f.cadastro})</span><br>
+            <span style="font-size:11px;color:#6b7280">📍 ${f.cidade} · ${f.endereco}</span><br>`;
+        if (allocInfo) ttip += `<span style="font-size:11px;color:#1e40af;font-weight:600">📌 Alocado em: ${allocInfo.loja} (${allocInfo.distancia}km)</span><br>`;
+        if (top) ttip += `<span style="font-size:11px;color:#4b5563">🏢 Mais próxima: ${top.loja_nome} (${top.distancia_km}km)</span><br>`;
+        ttip += `<span style="font-size:11px">${formes.icon} ${formes.label}</span></div>`;
+        
+        marker.bindTooltip(ttip, { direction: 'top', offset: [0, -6], className: '' });
+        marker.addTo(peopleLayerGroup);
+        personMarkers[f.cadastro] = marker;
+    });
+
+    peopleLayerGroup.addTo(map);
+}
+
+// ===== FOCUS PERSON ON MAP =====
+function focusPerson(cadastro) {
+    const f = data.funcionarios.find(x => x.cadastro === cadastro);
+    if (!f || !f.lat || !f.lng) return;
+
+    // Enable promotores layer if not active
+    if (!showPromotores) { togglePromotores(); }
+
+    // Fly to person
+    map.flyTo([f.lat, f.lng], 14, { duration: .8 });
+
+    // Remove previous highlight
+    if (highlightMarker) { map.removeLayer(highlightMarker); highlightMarker = null; }
+
+    // Add highlight ring + big pin
+    const formes = classifyFormes(f.resposta_interesse);
+    const allocInfo = getAllocInfo(f.cadastro);
+    const colors = { disponivel: '#16a34a', seminteresse: '#dc2626', outras: '#d97706', semresposta: '#94a3b8' };
+    const cor = allocInfo ? '#1e40af' : (colors[formes.type] || '#94a3b8');
+
+    const bigIcon = L.divIcon({
+        html: `<div class="person-pin" style="position:relative">
+            <div class="person-highlight" style="background:${cor};width:24px;height:24px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center">
+                <span style="font-size:12px">👤</span>
+            </div>
+        </div>`,
+        className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+    });
+
+    highlightMarker = L.marker([f.lat, f.lng], { icon: bigIcon, zIndexOffset: 9999 });
+
+    // Rich popup for the person
+    const top3 = f.lojas_proximas.slice(0, 5);
+    const bestCost = f.lojas_proximas.reduce((b, l) => !b || l.custo_mensal < b.custo_mensal ? l : b, null);
+    const l10 = f.lojas_proximas.filter(l => l.distancia_km <= 10).length;
+    const l20 = f.lojas_proximas.filter(l => l.distancia_km <= 20).length;
+
+    let popup = `<div style="min-width:300px;max-width:360px">
+        <div style="background:linear-gradient(135deg,${cor},${cor}cc);color:#fff;padding:12px 14px">
+            <div style="font-size:15px;font-weight:700">👤 ${f.nome}</div>
+            <div style="font-size:11px;opacity:.9">${f.cidade} · ${f.cadastro} · ${f.status}</div>
+            <div style="background:rgba(0,0,0,.15);padding:6px 8px;border-radius:6px;margin-top:6px;font-size:11px">📍 ${f.endereco}</div>
+        </div>
+        <div style="padding:12px 14px">`;
+
+    if (allocInfo) {
+        popup += `<div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;padding:8px;margin-bottom:8px;font-size:11px;color:#1e40af;font-weight:700">📌 ALOCADO EM: ${allocInfo.loja} (${allocInfo.distancia}km)</div>`;
+    }
+
+    popup += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
+            <div class="metric"><div class="metric-val" style="font-size:16px;color:#16a34a">${l10}</div><div class="metric-label">Lojas ≤10km</div></div>
+            <div class="metric"><div class="metric-val" style="font-size:16px;color:#d97706">${l20}</div><div class="metric-label">Lojas ≤20km</div></div>
+            <div class="metric"><div class="metric-val" style="font-size:16px;color:${cor}">${f.lojas_proximas.length}</div><div class="metric-label">Total ≤50km</div></div>
+        </div>`;
+
+    popup += `<div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:4px">🏢 Top 5 Lojas Próximas:</div>`;
+    top3.forEach((l, i) => {
+        popup += `<div style="font-size:11px;padding:3px 0;color:#475569;border-bottom:1px solid #f1f5f9">${i+1}. <b>${l.loja_nome}</b> — ${l.distancia_km}km · ~${l.tempo_min}min · R$${l.custo_mensal}/mês</div>`;
+    });
+
+    if (bestCost) {
+        popup += `<div style="margin-top:6px;font-size:11px;color:#065f46;background:#f0fdf4;padding:4px 8px;border-radius:4px">💰 Menor custo: <b>${bestCost.loja_nome}</b> — R$${bestCost.custo_mensal}/mês (${bestCost.distancia_km}km)</div>`;
+    }
+
+    popup += `<div class="obs-formes ${formes.css}" style="margin-top:8px">
+        <div style="font-weight:700;margin-bottom:2px">${formes.icon} Formes: ${formes.label}</div>
+        <div style="font-style:italic;font-size:10px">${formes.tip}</div>
+    </div>`;
+
+    popup += `</div></div>`;
+
+    highlightMarker.bindPopup(popup, { maxWidth: 380, className: '' }).addTo(map);
+
+    // Open popup after fly animation
+    setTimeout(() => highlightMarker.openPopup(), 900);
+
+    // Auto-remove highlight after 15s
+    setTimeout(() => { if (highlightMarker) { map.removeLayer(highlightMarker); highlightMarker = null; } }, 15000);
+}
+
+// ===== RADIUS CIRCLE =====
+function updateRadiusCircle() {
+    if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+    if (!selectedStore) return;
+    radiusCircle = L.circle([selectedStore.lat, selectedStore.lng], {
+        radius: selectedRadius * 1000,
+        color: selectedStore.cor_hex,
+        fillColor: selectedStore.cor_hex,
+        fillOpacity: 0.08,
+        weight: 2,
+        dashArray: '8, 6',
+        interactive: false
+    }).addTo(map);
+}
+
+function buildPopup(loja, num) {
+    const al = allocs[loja.nome] || [];
+    const rest = loja.total_hcs - al.length;
+    
+    // Contagem por distância
+    const counts = {};
+    [5, 10, 20, 30, 40, 50].forEach(r => counts[r] = 0);
+    data.funcionarios.forEach(f => {
+        const info = f.lojas_proximas.find(l => l.loja_id === loja.id);
+        if (!info) return;
+        [5, 10, 20, 30, 40, 50].forEach(r => { if (info.distancia_km <= r) counts[r]++; });
+    });
+
+    return `
+    <div style="min-width:320px;max-width:380px">
+        <div style="background:linear-gradient(135deg,${loja.cor_hex},${loja.cor_hex}cc);color:#fff;padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div style="background:rgba(255,255,255,.3);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px">${num}</div>
+                <div><h3 style="margin:0;font-size:15px">${loja.nome}</h3><div style="font-size:11px;opacity:.9">${loja.zona} (${loja.un})</div></div>
+            </div>
+            <div style="background:rgba(0,0,0,.15);padding:8px;border-radius:6px;font-size:11px;line-height:1.6">
+                🏢 ${loja.endereco}<br>🏙️ ${loja.municipio}<br>🕐 ${loja.horario}
+            </div>
+        </div>
+        <div style="padding:14px 16px">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">
+                <div class="metric"><div class="metric-val" style="font-size:20px;color:${loja.cor_hex}">${loja.total_hcs}</div><div class="metric-label">Total</div></div>
+                <div class="metric"><div class="metric-val" style="font-size:20px;color:${al.length?'#16a34a':'#9ca3af'}">${al.length}</div><div class="metric-label">Alocados</div></div>
+                <div class="metric"><div class="metric-val" style="font-size:20px;color:${rest?'#dc2626':'#16a34a'}">${rest}</div><div class="metric-label">Restantes</div></div>
+            </div>
+            <div style="background:#f9fafb;padding:10px;border-radius:8px;margin-bottom:12px">
+                <div style="font-size:11px;font-weight:700;color:#4b5563;margin-bottom:6px">👥 Pessoas próximas</div>
+                <div class="dist-grid">
+                    <div class="dist-cell"><b style="color:#16a34a">${counts[5]}</b>≤5km</div>
+                    <div class="dist-cell"><b style="color:#059669">${counts[10]}</b>≤10km</div>
+                    <div class="dist-cell"><b style="color:#d97706">${counts[20]}</b>≤20km</div>
+                    <div class="dist-cell"><b style="color:#ea580c">${counts[30]}</b>≤30km</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:4px">
+                    <div class="dist-cell"><b style="color:#dc2626">${counts[40]}</b>≤40km</div>
+                    <div class="dist-cell"><b style="color:#6b7280">${counts[50]}</b>≤50km</div>
+                </div>
+            </div>
+            <button onclick="selectStore(data.lojas[${loja.id-1}]);switchTab('stores')" style="width:100%;padding:10px;background:linear-gradient(135deg,${loja.cor_hex},${loja.cor_hex}cc);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">📋 Ver Candidatos</button>
+        </div>
+    </div>`;
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    event?.target?.closest?.('.tab')?.classList.add('active') || document.querySelectorAll('.tab')[['dashboard','zones','stores','search'].indexOf(tab)]?.classList.add('active');
+    document.getElementById('v-' + tab).classList.add('active');
+    if (tab === 'stores' && selectedStore) renderAllocation();
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+    const totalVagas = data.lojas.reduce((s, l) => s + l.total_hcs, 0);
+    const totalAlloc = Object.values(allocs).reduce((s, a) => s + a.length, 0);
+    const pct = totalVagas ? ((totalAlloc / totalVagas) * 100).toFixed(1) : 0;
+    const criticas = data.lojas.filter(l => (allocs[l.nome]||[]).length < l.total_hcs * 0.5).length;
+
+    // Formes stats
+    let fDisp = 0, fSem = 0, fOutras = 0, fNR = 0;
+    data.funcionarios.forEach(f => {
+        const c = classifyFormes(f.resposta_interesse);
+        if (c.type === 'disponivel') fDisp++;
+        else if (c.type === 'seminteresse') fSem++;
+        else if (c.type === 'outras') fOutras++;
+        else fNR++;
+    });
+
+    const zones = {};
+    data.lojas.forEach(l => {
+        if (!zones[l.un]) zones[l.un] = { lojas: 0, vagas: 0 };
+        zones[l.un].lojas++;
+        zones[l.un].vagas += l.total_hcs;
+    });
+
+    document.getElementById('v-dashboard').innerHTML = `
+        <div class="card">
+            <div class="card-title">📊 Visão Geral</div>
+            <div class="metrics">
+                <div class="metric"><div class="metric-val">${data.lojas.length}</div><div class="metric-label">Lojas</div></div>
+                <div class="metric"><div class="metric-val">${totalVagas}</div><div class="metric-label">Vagas Totais</div></div>
+                <div class="metric"><div class="metric-val">${data.funcionarios.length}</div><div class="metric-label">Funcionários</div></div>
+                <div class="metric"><div class="metric-val" style="color:#16a34a">${fDisp}</div><div class="metric-label">Disponíveis</div><div class="metric-sub">Com horário</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">📝 Respostas Formes</div>
+            <div class="metrics">
+                <div class="metric"><div class="metric-val" style="font-size:18px;color:#16a34a">${fDisp}</div><div class="metric-label">🟢 Disponíveis</div><div class="metric-sub">Horário definido</div></div>
+                <div class="metric"><div class="metric-val" style="font-size:18px;color:#dc2626">${fSem}</div><div class="metric-label">🔴 Sem interesse</div><div class="metric-sub">Descartar</div></div>
+                <div class="metric"><div class="metric-val" style="font-size:18px;color:#d97706">${fOutras}</div><div class="metric-label">🟡 Outras</div><div class="metric-sub">Redirecionar</div></div>
+                <div class="metric"><div class="metric-val" style="font-size:18px;color:#94a3b8">${fNR}</div><div class="metric-label">⚪ Sem resposta</div><div class="metric-sub">Contatar</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title" style="justify-content:space-between">
+                ⚠️ Alocação
+                ${totalAlloc > 0 ? `<div style="display:flex;gap:4px"><button class="btn btn-export" onclick="exportExcel()">📊 Excel</button><button class="btn btn-clear" onclick="clearAllocs()">🗑️</button></div>` : ''}
+            </div>
+            <div class="metrics">
+                <div class="metric"><div class="metric-val" style="color:#16a34a">${totalAlloc}</div><div class="metric-label">Alocados</div><div class="metric-sub">${pct}%</div></div>
+                <div class="metric"><div class="metric-val" style="color:#dc2626">${totalVagas - totalAlloc}</div><div class="metric-label">Pendentes</div><div class="metric-sub">${criticas} lojas críticas</div></div>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+        </div>
+        <div class="card">
+            <div class="card-title">🗺️ Por Zona</div>
+            ${Object.entries(data.cores_zonas).map(([code, z]) => `
+                <div class="zone" style="border-color:${z.cor}" onclick="filterZone('${code}')">
+                    <div class="zone-name" style="color:${z.cor}">${z.nome} <span style="font-size:10px;background:${z.cor}22;color:${z.cor};padding:1px 6px;border-radius:4px">${code}</span></div>
+                    <div class="zone-stats">
+                        <div class="zone-stat"><b>${zones[code]?.lojas||0}</b>lojas</div>
+                        <div class="zone-stat"><b>${zones[code]?.vagas||0}</b>vagas</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>`;
+}
+
+// ===== ZONES =====
+function renderZones() {
+    document.getElementById('v-zones').innerHTML = `
+        <div class="card">
+            <div class="card-title">🗺️ Detalhamento por Zona</div>
+            ${Object.entries(data.cores_zonas).map(([code, z]) => {
+                const lojas = data.lojas.filter(l => l.un === code);
+                const vagas = lojas.reduce((s, l) => s + l.total_hcs, 0);
+                const aloc = lojas.reduce((s, l) => s + (allocs[l.nome]||[]).length, 0);
+                return `
+                <div class="card" style="border-left:4px solid ${z.cor}">
+                    <div class="card-title" style="color:${z.cor}">${z.nome} (${code})</div>
+                    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+                        <div class="metric"><div class="metric-val" style="font-size:18px;color:${z.cor}">${lojas.length}</div><div class="metric-label">Lojas</div></div>
+                        <div class="metric"><div class="metric-val" style="font-size:18px">${vagas}</div><div class="metric-label">Vagas</div></div>
+                        <div class="metric"><div class="metric-val" style="font-size:18px;color:${aloc?'#16a34a':'#9ca3af'}">${aloc}</div><div class="metric-label">Alocados</div></div>
+                    </div>
+                    <div style="margin-top:8px">
+                        ${lojas.map((l, i) => `<div class="store" onclick="selectStore(data.lojas[${l.id-1}]);switchTab('stores')"><div class="store-num" style="background:${z.cor};width:26px;height:26px;font-size:11px">${data.lojas.indexOf(l)+1}</div><div><div class="store-name" style="font-size:12px">${l.nome}</div><div class="store-info">${l.total_hcs} vagas · ${(allocs[l.nome]||[]).length} alocados</div></div></div>`).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`;
+}
+
+// ===== STORE LIST =====
+function renderStoreList() {
+    if (selectedStore) { renderAllocation(); return; }
+    // Clear radius when going back to list
+    if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+    
+    const el = document.getElementById('v-stores');
+    el.innerHTML = `
+        <input class="search" placeholder="🔍 Filtrar lojas..." oninput="filterStores(this.value)">
+        <div id="store-list">
+            ${data.lojas.map((l, i) => storeItem(l, i+1)).join('')}
+        </div>`;
+}
+
+function storeItem(l, num) {
+    const al = (allocs[l.nome]||[]).length;
+    return `<div class="store" onclick="selectStore(data.lojas[${l.id-1}])">
+        <div class="store-num" style="background:${l.cor_hex}">${num}</div>
+        <div style="flex:1">
+            <div class="store-name">${l.nome}</div>
+            <div class="store-info">${l.endereco}</div>
+            <div class="store-badges">
+                <span class="badge badge-vagas">${l.total_hcs - al} vagas</span>
+                ${l.status === 'Crítica' ? '<span class="badge badge-status">Crítica</span>' : ''}
+                ${al ? `<span class="badge" style="background:#d1fae5;color:#065f46">${al} alocados</span>` : ''}
+            </div>
+        </div>
+    </div>`;
+}
+
+function filterStores(term) {
+    const t = term.toLowerCase();
+    const filtered = data.lojas.filter(l => l.nome.toLowerCase().includes(t) || l.zona.toLowerCase().includes(t) || l.un.toLowerCase().includes(t) || l.endereco.toLowerCase().includes(t));
+    document.getElementById('store-list').innerHTML = filtered.length
+        ? filtered.map(l => storeItem(l, data.lojas.indexOf(l)+1)).join('')
+        : '<div class="empty"><div class="empty-icon">🔍</div>Nenhuma loja encontrada</div>';
+}
+
+function filterZone(code) {
+    switchTab('stores');
+    setTimeout(() => {
+        const filtered = data.lojas.filter(l => l.un === code);
+        document.getElementById('store-list').innerHTML = filtered.map(l => storeItem(l, data.lojas.indexOf(l)+1)).join('');
+    }, 50);
+}
+
+// ===== ALLOCATION =====
+function selectStore(loja) {
+    selectedStore = loja;
+    map.flyTo([loja.lat, loja.lng], 13, { duration: 1 });
+    updateRadiusCircle();
+    if (showPromotores) drawPeople();
+    renderAllocation();
+}
+
+function renderAllocation() {
+    if (!selectedStore) return;
+    const loja = selectedStore;
+    const num = data.lojas.indexOf(loja) + 1;
+    const al = allocs[loja.nome] || [];
+    const rest = loja.total_hcs - al.length;
+    const candidates = getCandidates(loja);
+
+    document.getElementById('v-stores').innerHTML = `
+        <button class="btn" style="background:#f3f4f6;margin-bottom:12px;width:100%" onclick="selectedStore=null;renderStoreList()">← Voltar para lista</button>
+        
+        <div class="card" style="border-left:4px solid ${loja.cor_hex}">
+            <div class="alloc-header">
+                <div class="store-num" style="background:${loja.cor_hex}">${num}</div>
+                <h3 style="flex:1">${loja.nome}</h3>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+                📍 ${loja.endereco}<br>🏙️ ${loja.municipio} · 🕐 ${loja.horario}
+            </div>
+            <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+                <div class="metric"><div class="metric-val" style="font-size:18px;color:${loja.cor_hex}">${loja.total_hcs}</div><div class="metric-label">Total</div></div>
+                <div class="metric"><div class="metric-val" style="font-size:18px;color:#16a34a">${al.length}</div><div class="metric-label">Alocados</div></div>
+                <div class="metric"><div class="metric-val" style="font-size:18px;color:${rest?'#dc2626':'#16a34a'}">${rest}</div><div class="metric-label">Restantes</div></div>
+            </div>
+        </div>
+
+        ${al.length ? `
+        <div class="allocated">
+            <div class="allocated-title">✅ Funcionários Alocados (${al.length})</div>
+            ${al.map(a => `<div class="allocated-item"><span class="name">${a.nome}</span><span style="color:var(--muted);font-size:11px">${a.distancia}km</span><button class="btn btn-remove" onclick="deallocate('${escHtml(loja.nome)}','${a.cadastro}')">✕</button></div>`).join('')}
+        </div>` : ''}
+
+        <div class="card" style="margin-top:12px">
+            <div class="card-title">👥 Candidatos no raio de ${selectedRadius}km</div>
+            <div class="radius-btns">
+                ${RAIOS.map(r => `<button class="radius-btn ${r===selectedRadius?'active':''}" onclick="selectedRadius=${r};updateRadiusCircle();renderAllocation()">${r}km <b>${countByRadius(loja, r)}</b></button>`).join('')}
+            </div>
+            ${candidates.length ? candidates.slice(0, 50).map(c => {
+                const formes = classifyFormes(c.resposta_interesse);
+                const allocInfo = getAllocInfo(c.cadastro);
+                const top = c.lojas_proximas[0];
+                const isThisBest = top && top.loja_id === loja.id;
+                return `
+                <div class="candidate">
+                    <div class="cand-top">
+                        <div style="flex:1">
+                            <div class="cand-name">
+                                ${c.nome}
+                                ${formes.type === 'disponivel' ? `<span style="font-size:9px;background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:4px;margin-left:4px">🟢 Horário OK</span>` : ''}
+                                ${formes.type === 'seminteresse' ? `<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:4px;margin-left:4px">🔴 Sem interesse</span>` : ''}
+                                ${formes.type === 'outras' ? `<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;margin-left:4px">🟡 Outras</span>` : ''}
+                                ${isThisBest ? `<span style="font-size:9px;background:#ede9fe;color:#5b21b6;padding:1px 6px;border-radius:4px;margin-left:2px">⭐ Melhor opção</span>` : ''}
+                            </div>
+                            <div class="cand-detail">
+                                📍 ${c.cidade}${allocInfo ? ` · <span style="color:#1e40af;font-weight:600">📌 Alocado: ${allocInfo.loja}</span>` : ''}
+                                ${!isThisBest && top ? ` · Mais próxima: ${top.loja_nome} (${top.distancia_km}km)` : ''}
+                            </div>
+                        </div>
+                        <div class="cand-dist">
+                            <b>${c.distancia}km</b>
+                            ~${c.tempo}min · R$${c.custo}/mês
+                        </div>
+                        <button class="btn" style="background:#eef2ff;color:#4338ca;font-size:10px;padding:4px 8px" onclick="event.stopPropagation();focusPerson('${c.cadastro}')">📍</button>
+                        ${isAllocated(c.cadastro) ? `<span class="btn" style="background:#e2e8f0;color:#475569;font-size:10px;cursor:default">Alocado</span>` : `<button class="btn btn-alloc" onclick="event.stopPropagation();allocate('${escJs(loja.nome)}','${c.cadastro}','${escJs(c.nome)}',${c.distancia})">Alocar</button>`}
+                    </div>
+                    <div class="cand-obs ${formes.css}" style="font-size:10px;padding:4px 8px;border-radius:4px;border-left:3px solid;margin-top:4px">
+                        ${formes.icon} <b>Formes:</b> ${formes.type === 'semresposta' ? 'Sem resposta — contatar' : formes.label} ${formes.type === 'disponivel' ? '✓' : ''}
+                    </div>
+                </div>`;
+            }).join('') : '<div class="empty"><div class="empty-icon">📭</div>Nenhum candidato neste raio</div>'}
+        </div>`;
+}
+
+function getCandidates(loja) {
+    return data.funcionarios
+        .map(f => {
+            const info = f.lojas_proximas.find(l => l.loja_id === loja.id);
+            if (!info || info.distancia_km > selectedRadius || info.distancia_km > 50) return null;
+            return {
+                ...f,
+                distancia: info.distancia_km,
+                tempo: info.tempo_min,
+                custo: info.custo_mensal,
+                temResposta: f.resposta_interesse !== '-'
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+            // Priority: disponivel > semresposta > outras > seminteresse, then by distance
+            const order = { disponivel: 0, semresposta: 1, outras: 2, seminteresse: 3 };
+            const fa = classifyFormes(a.resposta_interesse).type;
+            const fb = classifyFormes(b.resposta_interesse).type;
+            if (order[fa] !== order[fb]) return order[fa] - order[fb];
+            return a.distancia - b.distancia;
+        });
+}
+
+function countByRadius(loja, r) {
+    return data.funcionarios.filter(f => {
+        const info = f.lojas_proximas.find(l => l.loja_id === loja.id);
+        return info && info.distancia_km <= r;
+    }).length;
+}
+
+// ===== ALLOC ACTIONS =====
+function isAllocated(cadastro) {
+    return Object.values(allocs).some(list => list.some(a => a.cadastro === cadastro));
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+function escJs(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+function allocate(lojaNome, cadastro, nome, dist) {
+    if (isAllocated(cadastro)) { alert('Funcionário já alocado em outra loja.'); return; }
+    if (!allocs[lojaNome]) allocs[lojaNome] = [];
+    const loja = data.lojas.find(l => l.nome === lojaNome);
+    if (loja && allocs[lojaNome].length >= loja.total_hcs) { alert('Loja já está completa!'); return; }
+    allocs[lojaNome].push({ cadastro, nome, distancia: dist });
+    saveAllocs();
+    renderAllocation();
+    renderDashboard();
+    if (showPromotores) drawPeople();
+}
+
+function deallocate(lojaNome, cadastro) {
+    if (!allocs[lojaNome]) return;
+    allocs[lojaNome] = allocs[lojaNome].filter(a => a.cadastro !== cadastro);
+    if (!allocs[lojaNome].length) delete allocs[lojaNome];
+    saveAllocs();
+    renderAllocation();
+    renderDashboard();
+    if (showPromotores) drawPeople();
+}
+
+function clearAllocs() {
+    if (!confirm('Limpar TODAS as alocações?')) return;
+    allocs = {};
+    saveAllocs();
+    selectedStore = null;
+    renderStoreList();
+    renderDashboard();
+    renderZones();
+    if (showPromotores) drawPeople();
+}
+
+function saveAllocs() { localStorage.setItem('sabesp_allocs', JSON.stringify(allocs)); }
+
+// ===== SEARCH (with full analytical person card) =====
+function renderSearch() {
+    document.getElementById('v-search').innerHTML = `
+        <input class="search" placeholder="🔍 Buscar funcionário por nome, cadastro, cidade..." oninput="searchPeople(this.value)">
+        <div id="people-results">
+            <div class="empty"><div class="empty-icon">🔍</div>Digite para buscar funcionários<br><span style="font-size:12px">Cada resultado terá análise completa com oportunidades</span></div>
+        </div>`;
+}
+
+function searchPeople(term) {
+    if (term.length < 2) { document.getElementById('people-results').innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>Digite pelo menos 2 caracteres</div>'; return; }
+    const t = term.toLowerCase();
+    const results = data.funcionarios.filter(f => f.nome.toLowerCase().includes(t) || f.cadastro.includes(t) || f.cidade.toLowerCase().includes(t)).slice(0, 20);
+    
+    document.getElementById('people-results').innerHTML = results.length ? results.map(f => {
+        return `<div class="person-card" onclick="focusPerson('${f.cadastro}')">
+            <div class="person-header">
+                <div>
+                    <b style="font-size:13px">${f.nome}</b><br>
+                    <span style="font-size:11px;color:var(--muted)">${f.cidade} · ${f.cadastro} · ${f.status}</span>
+                </div>
+                <button class="btn" style="background:#eef2ff;color:#4338ca;font-size:10px" onclick="event.stopPropagation();focusPerson('${f.cadastro}')">📍 Ver no mapa</button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📍 ${f.endereco}</div>
+            ${buildPersonSummary(f)}
+        </div>`;
+    }).join('') : '<div class="empty"><div class="empty-icon">🔍</div>Nenhum resultado</div>';
+}
+
+// ===== EXPORT =====
+function exportExcel() {
+    const wb = XLSX.utils.book_new();
+    
+    // Sheet 1: Resumo
+    const resumo = [['SABESP - Relatório de Alocação', '', '', '', '', '', ''],
+        ['Data:', new Date().toLocaleDateString('pt-BR'), '', '', '', '', ''],
+        ['', '', '', '', '', '', ''],
+        ['Loja', 'Zona', 'UN', 'Vagas', 'Alocados', 'Pendentes', 'Ocupação']];
+    data.lojas.forEach(l => {
+        const al = (allocs[l.nome]||[]).length;
+        resumo.push([l.nome, l.zona, l.un, l.total_hcs, al, l.total_hcs - al, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1)+'%' : '0%']);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), 'Resumo');
+
+    // Sheet 2: Alocações
+    const aloc = [['Loja', 'Funcionário', 'Cadastro', 'Distância (km)']];
+    Object.entries(allocs).forEach(([loja, list]) => {
+        list.forEach(a => aloc.push([loja, a.nome, a.cadastro, a.distancia]));
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aloc), 'Alocações');
+
+    // Sheet 3: Funcionários com análise
+    const funcs = [['Cadastro', 'Nome', 'Cidade', 'Endereço', 'Resposta Formes', 'Classificação', 'Alocado Em', 'Loja Mais Próxima', 'Dist (km)', 'Tempo (min)', 'Custo Mensal (R$)', 'Lojas ≤10km', 'Lojas ≤20km']];
+    data.funcionarios.forEach(f => {
+        const top = f.lojas_proximas[0];
+        const formes = classifyFormes(f.resposta_interesse);
+        const allocInfo = getAllocInfo(f.cadastro);
+        const l10 = f.lojas_proximas.filter(l => l.distancia_km <= 10).length;
+        const l20 = f.lojas_proximas.filter(l => l.distancia_km <= 20).length;
+        funcs.push([f.cadastro, f.nome, f.cidade, f.endereco, f.resposta_interesse, formes.label, allocInfo ? allocInfo.loja : '', top?.loja_nome, top?.distancia_km, top?.tempo_min, top?.custo_mensal, l10, l20]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(funcs), 'Funcionários');
+
+    // Sheet 4: Análise por Loja
+    const porLoja = [['Loja', 'Zona', 'Vagas', 'Alocados', 'Taxa', 'Disponíveis ≤10km', 'Disponíveis ≤20km', 'Total ≤10km', 'Total ≤20km']];
+    data.lojas.forEach(l => {
+        const al = (allocs[l.nome]||[]).length;
+        const prox10 = data.funcionarios.filter(f => { const i = f.lojas_proximas.find(x => x.loja_id === l.id); return i && i.distancia_km <= 10; });
+        const prox20 = data.funcionarios.filter(f => { const i = f.lojas_proximas.find(x => x.loja_id === l.id); return i && i.distancia_km <= 20; });
+        const disp10 = prox10.filter(f => classifyFormes(f.resposta_interesse).type === 'disponivel').length;
+        const disp20 = prox20.filter(f => classifyFormes(f.resposta_interesse).type === 'disponivel').length;
+        porLoja.push([l.nome, l.zona, l.total_hcs, al, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1)+'%' : '0%', disp10, disp20, prox10.length, prox20.length]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(porLoja), 'Análise por Loja');
+
+    XLSX.writeFile(wb, `SABESP_Alocacao_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+</script>
+</body>
+</html>
