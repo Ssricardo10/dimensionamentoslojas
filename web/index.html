@@ -16,13 +16,14 @@
             --bg: #f0f2f5; --card: #fff; --text: #1a1a2e; --muted: #6b7280;
             --primary: #667eea; --accent: #764ba2;
             --ol: #e74c3c; --on: #3498db; --oc: #9b59b6; --os: #27ae60; --oo: #f39c12;
+            --sidebar-w: 440px;
         }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); overflow: hidden; height: 100vh; }
         
         /* Layout */
         .app { display: flex; height: 100vh; }
         #map { flex: 1; z-index: 1; }
-        .sidebar { width: 440px; background: var(--card); box-shadow: -2px 0 12px rgba(0,0,0,.08); display: flex; flex-direction: column; z-index: 2; overflow: hidden; }
+        .sidebar { width: var(--sidebar-w); background: var(--card); box-shadow: -2px 0 12px rgba(0,0,0,.08); display: flex; flex-direction: column; z-index: 2; overflow: hidden; }
         
         /* Header */
         .header { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
@@ -135,7 +136,7 @@
         .dist-cell b { display: block; font-size: 13px; }
         
         /* Map controls - MOVED to top-right to avoid zoom overlap */
-        .map-layers { position: absolute; top: 12px; right: 432px; z-index: 999; display: flex; gap: 4px; }
+        .map-layers { position: absolute; top: 12px; right: 8px; z-index: 999; display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 70px); }
         .map-layer-btn { padding: 8px 14px; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
         .map-layer-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
@@ -160,7 +161,7 @@
         .legend-live {
             position: absolute;
             bottom: 12px;
-            right: 452px;
+            right: 8px;
             z-index: 990;
             background: rgba(255,255,255,.95);
             border: 1px solid #dbe3f0;
@@ -184,7 +185,7 @@
             gap: 5px;
         }
         .legend-chip.active { background: #eef2ff; border-color: #c7d2fe; color: #3730a3; }
-        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(255,255,255,.5); box-shadow: 0 0 0 1px rgba(0,0,0,.1); }
 
         .zone-legend-panel {
             position: absolute;
@@ -274,9 +275,12 @@
 
         .store-critical-ring {
             position: absolute;
-            inset: -7px;
+            top: -4px;
+            left: 4px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            border: 2px solid rgba(220,38,38,.55);
+            border: 2px solid rgba(220,38,38,.7);
             animation: store-pulse 1.8s ease-out infinite;
             pointer-events: none;
         }
@@ -339,6 +343,58 @@
         .footer .dev { display: flex; align-items: center; gap: 6px; }
         .footer .pulse { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; animation: pulse-ring 2s infinite; }
 
+        /* =================== RESPONSIVO =================== */
+
+        /* Tela média (notebook padrão 1280px) */
+        @media (max-width: 1279px) {
+            :root { --sidebar-w: 380px; }
+        }
+
+        /* Tela pequena (notebook compacto 1024-1100px) */
+        @media (max-width: 1099px) {
+            :root { --sidebar-w: 340px; }
+            .header h1 { font-size: 15px; }
+            .header p { font-size: 11px; }
+            .zone-legend-panel { width: 290px; }
+            .map-context { min-width: 190px; max-width: 250px; font-size: 10px; }
+        }
+
+        /* Tela muito pequena (900-1024px) */
+        @media (max-width: 1023px) {
+            :root { --sidebar-w: 300px; }
+            .tab { font-size: 11px; padding: 8px 2px; }
+            .tab .icon { font-size: 14px; }
+            .zone-legend-panel { width: 250px; }
+            .header h1 { font-size: 14px; }
+            .metric-val { font-size: 20px; }
+        }
+
+        /* Mobile / Tablet (≤768px) — layout empilhado */
+        @media (max-width: 768px) {
+            body { overflow: auto; height: auto; }
+            .app { flex-direction: column; height: auto; min-height: 100vh; }
+            #map { flex: none; height: 45vh; min-height: 280px; position: relative; }
+            .sidebar { width: 100% !important; height: auto; min-height: 320px; flex: 1; overflow: hidden; }
+            .zone-legend-panel { width: min(300px, calc(100vw - 80px)); max-height: 35vh; }
+            .map-context { display: none; }
+            .legend-live { right: 8px; bottom: 8px; }
+            .map-toggle { bottom: 12px; left: 8px; }
+            .footer { flex-direction: column; gap: 4px; align-items: flex-start; }
+            .candidates-toolbar { grid-template-columns: repeat(3, 1fr); }
+            .dist-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Telas muito pequenas (≤480px) */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 13px; }
+            .page-link { font-size: 10px; padding: 6px 8px; }
+            .tabs { overflow-x: auto; flex-wrap: nowrap; }
+            .tab { min-width: 56px; }
+            .metrics { grid-template-columns: 1fr 1fr; }
+            .zone-legend-panel { display: none; } /* oculta painel lateral no mapa em telas muito pequenas */
+            .legend-live { display: none; }
+        }
+
     </style>
 </head>
 <body>
@@ -352,19 +408,29 @@
                 <button class="map-layer-btn" onclick="setLayer('satellite')">Satélite</button>
             </div>
             <div class="legend-live" id="legend-live">
-                <div class="legend-title">🎨 Legenda Viva do Mapa</div>
+                <div class="legend-title">Legenda</div>
+                <div style="display:flex;gap:14px;margin-bottom:8px;font-size:10px;color:#64748b;align-items:center">
+                    <span style="display:flex;align-items:center;gap:5px">
+                        <svg width="12" height="16" viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.27 21.73 0 14 0z" fill="#667eea"/><circle cx="14" cy="13" r="7" fill="#fff"/></svg>
+                        Lojas
+                    </span>
+                    <span style="display:flex;align-items:center;gap:5px"><span style="background:#3b82f6;width:8px;height:8px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span>Promotores</span>
+                </div>
                 <div class="legend-chips">
                     <button class="legend-chip active" id="chip-disponivel" onclick="toggleLegendType('disponivel')"><span class="legend-dot" style="background:#16a34a"></span>Disponíveis</button>
                     <button class="legend-chip active" id="chip-semresposta" onclick="toggleLegendType('semresposta')"><span class="legend-dot" style="background:#94a3b8"></span>Sem resposta</button>
                     <button class="legend-chip active" id="chip-outras" onclick="toggleLegendType('outras')"><span class="legend-dot" style="background:#d97706"></span>Outras</button>
                     <button class="legend-chip active" id="chip-seminteresse" onclick="toggleLegendType('seminteresse')"><span class="legend-dot" style="background:#dc2626"></span>Sem interesse</button>
-                    <button class="legend-chip active" id="chip-alocado" onclick="toggleLegendType('alocado')"><span class="legend-dot" style="background:#1e40af"></span>Alocados</button>
+                    <button class="legend-chip active" id="chip-alocado" onclick="toggleLegendType('alocado')"><span class="legend-dot" style="background:#3b82f6"></span>Alocados</button>
                 </div>
             </div>
             <div class="zone-legend-panel" id="zone-legend"></div>
             <div class="map-toggle">
                 <button class="map-toggle-btn" id="btn-promotores" onclick="togglePromotores()">
                     <span class="dot" style="background:#1e40af"></span> Promotores
+                </button>
+                <button class="map-toggle-btn" id="btn-teia" onclick="toggleTeia()">
+                    <span class="dot" style="background:#6366f1"></span> Teia
                 </button>
             </div>
         </div>
@@ -421,6 +487,8 @@ let selectedStore = null;
 let selectedRadius = 15;
 let showRadius = true;
 let showPromotores = false;
+let showTeia = false;
+let teiaLayerGroup = null;
 let zoneLegendCollapsed = localStorage.getItem('sabesp_zone_legend_collapsed') === '1';
 const RAIOS = [5, 10, 15, 20, 25, 30, 40, 50];
 
@@ -442,6 +510,7 @@ function setScenario(name) {
     renderStoreList();
     renderExecutive();
     if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
 }
 
 function logAudit(action, payload) {
@@ -564,6 +633,7 @@ function toggleLegendType(type) {
     mapLegendFilter[type] = !mapLegendFilter[type];
     document.getElementById('chip-' + type)?.classList.toggle('active', mapLegendFilter[type]);
     if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
 }
 
 const layers = {
@@ -674,9 +744,17 @@ function drawStores() {
         const al = (allocs[loja.nome] || []).length;
         const ratio = loja.total_hcs ? (al / loja.total_hcs) : 0;
         const showCriticalRing = ratio < 0.5;
+        // Pin estilo teardrop elegante (inspirado Google Maps)
         const icon = L.divIcon({
-            html: `<div style="position:relative;background:${loja.cor_hex};width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:transform .2s">${showCriticalRing ? '<span class="store-critical-ring"></span>' : ''}${num}</div>`,
-            className: '', iconSize: [34, 34], iconAnchor: [17, 17]
+            html: `<div style="position:relative;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))">
+                <svg width="28" height="36" viewBox="0 0 28 36">
+                    <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.27 21.73 0 14 0z" fill="${loja.cor_hex}"/>
+                    <circle cx="14" cy="13" r="9" fill="#fff" opacity=".95"/>
+                    <text x="14" y="17" text-anchor="middle" font-size="11" font-weight="700" fill="${loja.cor_hex}">${num}</text>
+                </svg>
+                ${showCriticalRing ? '<span class="store-critical-ring"></span>' : ''}
+            </div>`,
+            className: '', iconSize: [28, 36], iconAnchor: [14, 36]
         });
 
         const marker = L.marker([loja.lat, loja.lng], { icon })
@@ -689,7 +767,7 @@ function drawStores() {
             <div style="padding:6px 10px;border-left:4px solid ${loja.cor_hex}">
                 <b style="color:${loja.cor_hex}">#${num} ${loja.nome}</b><br>
                 <span style="font-size:11px;color:#6b7280">${loja.zona} · ${loja.total_hcs} vagas · Ag ${loja.vagas_agentes || 0} · Tri ${loja.vagas_triagistas || 0}</span>
-            </div>`, { direction: 'top', offset: [0, -18], className: '' });
+            </div>`, { direction: 'top', offset: [0, -36], className: '' });
 
         // Popup
         marker.bindPopup(() => buildPopup(loja, num), { maxWidth: 380, className: '' });
@@ -710,6 +788,40 @@ function togglePromotores() {
     drawPeople();
 }
 
+function toggleTeia() {
+    showTeia = !showTeia;
+    document.getElementById('btn-teia').classList.toggle('active', showTeia);
+    if (showTeia && !showPromotores) {
+        showPromotores = true;
+        document.getElementById('btn-promotores').classList.add('active');
+        drawPeople();
+    }
+    drawTeia();
+}
+
+function drawTeia() {
+    if (teiaLayerGroup) { map.removeLayer(teiaLayerGroup); teiaLayerGroup = null; }
+    if (!showTeia || !data) return;
+
+    teiaLayerGroup = L.layerGroup();
+    Object.entries(allocs).forEach(([lojaNome, list]) => {
+        const loja = data.lojas.find(l => l.nome === lojaNome);
+        if (!loja || !loja.lat || !loja.lng) return;
+        list.forEach(a => {
+            const f = data.funcionarios.find(x => String(x.cadastro) === String(a.cadastro));
+            if (!f || !f.lat || !f.lng) return;
+            L.polyline([[loja.lat, loja.lng], [f.lat, f.lng]], {
+                color: loja.cor_hex,
+                weight: 1.5,
+                opacity: 0.65,
+                dashArray: '5, 7',
+                interactive: false
+            }).addTo(teiaLayerGroup);
+        });
+    });
+    teiaLayerGroup.addTo(map);
+}
+
 function drawPeople() {
     if (peopleLayerGroup) { map.removeLayer(peopleLayerGroup); peopleLayerGroup = null; }
     personMarkers = {};
@@ -719,8 +831,16 @@ function drawPeople() {
         ? L.markerClusterGroup({
             showCoverageOnHover: false,
             spiderfyOnMaxZoom: true,
-            disableClusteringAtZoom: 14,
-            maxClusterRadius: 40
+            disableClusteringAtZoom: 15,
+            maxClusterRadius: 50,
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                const size = count < 10 ? 28 : count < 50 ? 32 : 38;
+                return L.divIcon({
+                    html: `<div style="width:${size}px;height:${size}px;background:linear-gradient(145deg,#4f46e5,#3730a3);border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:${size < 32 ? 11 : 12}px">${count}</div>`,
+                    className: '', iconSize: [size, size], iconAnchor: [size/2, size/2]
+                });
+            }
         })
         : L.layerGroup());
     data.funcionarios.forEach(f => {
@@ -728,12 +848,13 @@ function drawPeople() {
         const formes = classifyFormes(f.resposta_interesse);
         const allocInfo = getAllocInfo(f.cadastro);
         const colors = { disponivel: '#16a34a', seminteresse: '#dc2626', outras: '#d97706', semresposta: '#94a3b8' };
-        const cor = allocInfo ? '#1e40af' : (colors[formes.type] || '#94a3b8');
+        const cor = allocInfo ? '#3b82f6' : (colors[formes.type] || '#94a3b8');
         const typeKey = allocInfo ? 'alocado' : formes.type;
         if (!mapLegendFilter[typeKey]) return;
 
+        // Ponto minimalista elegante (estilo Uber/Airbnb)
         const icon = L.divIcon({
-            html: `<div style="background:${cor};width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);opacity:.8"></div>`,
+            html: `<div style="width:10px;height:10px;background:${cor};border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>`,
             className: '', iconSize: [10, 10], iconAnchor: [5, 5]
         });
 
@@ -742,12 +863,12 @@ function drawPeople() {
         
         // Tooltip
         const top = f.lojas_proximas[0];
-        let ttip = `<div style="padding:6px 10px;max-width:280px">
-            <b>${f.nome}</b> <span style="font-size:10px;color:#6b7280">(${f.cadastro})</span><br>
-            <span style="font-size:11px;color:#6b7280">📍 ${f.cidade} · ${f.endereco}</span><br>`;
-        if (allocInfo) ttip += `<span style="font-size:11px;color:#1e40af;font-weight:600">📌 Alocado em: ${allocInfo.loja} (${allocInfo.distancia}km)</span><br>`;
-        if (top) ttip += `<span style="font-size:11px;color:#4b5563">🏢 Mais próxima: ${top.loja_nome} (${top.distancia_km}km)</span><br>`;
-        ttip += `<span style="font-size:11px">${formes.icon} ${formes.label}</span></div>`;
+        let ttip = `<div style="padding:6px 10px;max-width:260px">
+            <b style="color:#1e293b">${f.nome}</b> <span style="font-size:10px;color:#94a3b8">${f.cadastro}</span><br>
+            <span style="font-size:11px;color:#64748b">${f.cidade}</span><br>`;
+        if (allocInfo) ttip += `<span style="font-size:11px;color:#3b82f6;font-weight:600">Alocado: ${allocInfo.loja}</span><br>`;
+        if (top) ttip += `<span style="font-size:10px;color:#94a3b8">Próxima: ${top.loja_nome} (${top.distancia_km}km)</span>`;
+        ttip += `</div>`;
         
         marker.bindTooltip(ttip, { direction: 'top', offset: [0, -6], className: '' });
         marker.addTo(peopleLayerGroup);
@@ -758,7 +879,7 @@ function drawPeople() {
 }
 
 // ===== FOCUS PERSON ON MAP =====
-function focusPerson(cadastro) {
+function focusPerson(cadastro, skipFly = false) {
     const cadastroKey = String(cadastro);
     const f = data.funcionarios.find(x => String(x.cadastro) === cadastroKey);
     if (!f || !f.lat || !f.lng) return;
@@ -766,8 +887,8 @@ function focusPerson(cadastro) {
     // Enable promotores layer if not active
     if (!showPromotores) { togglePromotores(); }
 
-    // Fly to person
-    map.flyTo([f.lat, f.lng], 14, { duration: .8 });
+    // Fly to person (skip on re-render after allocation)
+    if (!skipFly) map.flyTo([f.lat, f.lng], 14, { duration: .8 });
 
     // Remove previous highlight
     if (highlightMarker) { map.removeLayer(highlightMarker); highlightMarker = null; }
@@ -779,23 +900,21 @@ function focusPerson(cadastro) {
     const cor = allocInfo ? '#1e40af' : (colors[formes.type] || '#94a3b8');
 
     const bigIcon = L.divIcon({
-        html: `<div class="person-pin" style="position:relative">
-            <div class="person-highlight" style="background:${cor};width:24px;height:24px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center">
-                <span style="font-size:12px">👤</span>
-            </div>
+        html: `<div class="person-pin" style="position:relative;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">
+            <div class="person-highlight" style="background:${cor};width:20px;height:20px;border-radius:50%;border:3px solid #fff"></div>
         </div>`,
-        className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+        className: '', iconSize: [20, 20], iconAnchor: [10, 10]
     });
 
     highlightMarker = L.marker([f.lat, f.lng], { icon: bigIcon, zIndexOffset: 9999 });
 
     // Rich popup for the person
-    const top3 = f.lojas_proximas.slice(0, 5);
+    const top5 = f.lojas_proximas.slice(0, 5);
     const bestCost = f.lojas_proximas.reduce((b, l) => !b || l.custo_mensal < b.custo_mensal ? l : b, null);
     const l10 = f.lojas_proximas.filter(l => l.distancia_km <= 10).length;
     const l20 = f.lojas_proximas.filter(l => l.distancia_km <= 20).length;
 
-    let popup = `<div style="min-width:300px;max-width:360px">
+    let popup = `<div style="min-width:300px;max-width:380px">
         <div style="background:linear-gradient(135deg,${cor},${cor}cc);color:#fff;padding:12px 14px">
             <div style="font-size:15px;font-weight:700">👤 ${f.nome}</div>
             <div style="font-size:11px;opacity:.9">${f.cidade} · ${f.cadastro} · ${f.status}</div>
@@ -803,8 +922,12 @@ function focusPerson(cadastro) {
         </div>
         <div style="padding:12px 14px">`;
 
+    // Se já alocado, mostrar onde e botão de desalocar
     if (allocInfo) {
-        popup += `<div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;padding:8px;margin-bottom:8px;font-size:11px;color:#1e40af;font-weight:700">📌 ALOCADO EM: ${allocInfo.loja} (${allocInfo.distancia}km)</div>`;
+        popup += `<div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:6px;padding:8px;margin-bottom:8px;font-size:11px;color:#1e40af;display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <span style="font-weight:700">📌 ALOCADO EM: ${allocInfo.loja} (${allocInfo.distancia}km)</span>
+            <button onclick="deallocateFromPopup('${escJs(allocInfo.loja)}','${cadastroKey}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:4px 8px;font-size:10px;font-weight:600;cursor:pointer">✕ Remover</button>
+        </div>`;
     }
 
     popup += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">
@@ -813,10 +936,37 @@ function focusPerson(cadastro) {
             <div class="metric"><div class="metric-val" style="font-size:16px;color:${cor}">${f.lojas_proximas.length}</div><div class="metric-label">Total ≤50km</div></div>
         </div>`;
 
-    popup += `<div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:4px">🏢 Top 5 Lojas Próximas:</div>`;
-    top3.forEach((l, i) => {
-        popup += `<div style="font-size:11px;padding:3px 0;color:#475569;border-bottom:1px solid #f1f5f9">${i+1}. <b>${l.loja_nome}</b> — ${l.distancia_km}km · ~${l.tempo_min}min · R$${l.custo_mensal}/mês</div>`;
-    });
+    // Se não alocado, mostrar lojas com botão de alocar
+    if (!allocInfo) {
+        popup += `<div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:6px">🏢 Lojas Próximas — Clique para alocar:</div>`;
+        popup += `<div style="max-height:180px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;padding:4px">`;
+        top5.forEach((l, i) => {
+            const loja = data.lojas.find(x => x.id === l.loja_id);
+            const vagasLoja = loja ? loja.total_hcs : 0;
+            const alocadosLoja = loja ? (allocs[loja.nome] || []).length : 0;
+            const vagasRestantes = vagasLoja - alocadosLoja;
+            const lojaCheia = vagasRestantes <= 0;
+            const corLoja = loja ? loja.cor_hex : '#6b7280';
+            popup += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #f1f5f9;gap:6px">
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:11px;font-weight:600;color:${corLoja};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i+1}. ${l.loja_nome}</div>
+                    <div style="font-size:10px;color:#64748b">${l.distancia_km}km · ~${l.tempo_min}min · R$${l.custo_mensal}/mês</div>
+                    <div style="font-size:9px;color:${lojaCheia ? '#dc2626' : '#16a34a'}">${vagasRestantes}/${vagasLoja} vagas</div>
+                </div>
+                ${lojaCheia 
+                    ? `<span style="background:#e2e8f0;color:#64748b;border-radius:4px;padding:4px 8px;font-size:10px;font-weight:600">Cheia</span>`
+                    : `<button onclick="allocateFromPopup('${escJs(l.loja_nome)}','${cadastroKey}','${escJs(f.nome)}',${l.distancia_km})" style="background:linear-gradient(135deg,${corLoja},${corLoja}cc);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap">Alocar</button>`
+                }
+            </div>`;
+        });
+        popup += `</div>`;
+    } else {
+        // Se alocado, mostrar lista informativa apenas
+        popup += `<div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:4px">🏢 Outras Lojas Próximas:</div>`;
+        top5.forEach((l, i) => {
+            popup += `<div style="font-size:11px;padding:3px 0;color:#475569;border-bottom:1px solid #f1f5f9">${i+1}. <b>${l.loja_nome}</b> — ${l.distancia_km}km · ~${l.tempo_min}min · R$${l.custo_mensal}/mês</div>`;
+        });
+    }
 
     if (bestCost) {
         popup += `<div style="margin-top:6px;font-size:11px;color:#065f46;background:#f0fdf4;padding:4px 8px;border-radius:4px">💰 Menor custo: <b>${bestCost.loja_nome}</b> — R$${bestCost.custo_mensal}/mês (${bestCost.distancia_km}km)</div>`;
@@ -829,13 +979,53 @@ function focusPerson(cadastro) {
 
     popup += `</div></div>`;
 
-    highlightMarker.bindPopup(popup, { maxWidth: 380, className: '' }).addTo(map);
+    highlightMarker.bindPopup(popup, { maxWidth: 400, className: '' }).addTo(map);
 
-    // Open popup after fly animation
-    setTimeout(() => highlightMarker.openPopup(), 900);
+    // Open popup after fly animation (or immediately on re-render)
+    setTimeout(() => highlightMarker.openPopup(), skipFly ? 50 : 900);
 
-    // Auto-remove highlight after 15s
-    setTimeout(() => { if (highlightMarker) { map.removeLayer(highlightMarker); highlightMarker = null; } }, 15000);
+    // Auto-remove highlight after 30s (mais tempo para interagir)
+    setTimeout(() => { if (highlightMarker) { map.removeLayer(highlightMarker); highlightMarker = null; } }, 30000);
+}
+
+// Alocar direto do popup do promotor
+function allocateFromPopup(lojaNome, cadastro, nome, dist) {
+    if (isAllocated(cadastro)) { alert('Funcionário já alocado em outra loja.'); return; }
+    if (!allocs[lojaNome]) allocs[lojaNome] = [];
+    const loja = data.lojas.find(l => l.nome === lojaNome);
+    if (loja && allocs[lojaNome].length >= loja.total_hcs) { alert('Loja já está completa!'); return; }
+    allocs[lojaNome].push({ cadastro, nome, distancia: dist });
+    logAudit('ALLOCATE', { loja: lojaNome, cadastro, nome, distancia: dist });
+    saveAllocs();
+    drawStores();
+    updateMapContext();
+    renderDashboard();
+    renderExecutive();
+    if (selectedStore) renderAllocation();
+    if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
+    // Reabrir popup atualizado
+    focusPerson(cadastro, true);
+}
+
+// Desalocar direto do popup do promotor
+function deallocateFromPopup(lojaNome, cadastro) {
+    if (!allocs[lojaNome]) return;
+    const found = (allocs[lojaNome] || []).find(a => String(a.cadastro) === String(cadastro));
+    const cadastroKey = String(cadastro);
+    allocs[lojaNome] = allocs[lojaNome].filter(a => String(a.cadastro) !== cadastroKey);
+    if (!allocs[lojaNome].length) delete allocs[lojaNome];
+    logAudit('DEALLOCATE', { loja: lojaNome, cadastro, nome: found?.nome || '' });
+    saveAllocs();
+    drawStores();
+    updateMapContext();
+    renderDashboard();
+    renderExecutive();
+    if (selectedStore) renderAllocation();
+    if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
+    // Reabrir popup atualizado
+    focusPerson(cadastro, true);
 }
 
 // ===== RADIUS CIRCLE =====
@@ -1142,6 +1332,7 @@ function selectStore(loja) {
     updateMapContext();
     renderZoneLegendMap();
     if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
     renderAllocation();
 }
 
@@ -1303,6 +1494,7 @@ function suggestAllocationsForStore(lojaNome) {
     renderDashboard();
     renderExecutive();
     if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
 }
 
 // ===== ALLOC ACTIONS =====
@@ -1328,6 +1520,7 @@ function allocate(lojaNome, cadastro, nome, dist) {
     renderDashboard();
     renderExecutive();
     if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
 }
 
 function deallocate(lojaNome, cadastro) {
@@ -1344,6 +1537,7 @@ function deallocate(lojaNome, cadastro) {
     renderDashboard();
     renderExecutive();
     if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
 }
 
 function clearAllocs() {
@@ -1359,6 +1553,7 @@ function clearAllocs() {
     renderZones();
     renderExecutive();
     if (showPromotores) drawPeople();
+    if (showTeia) drawTeia();
 }
 
 function saveAllocs() {
