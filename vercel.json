@@ -14,6 +14,10 @@
     {
       "source": "/guia",
       "destination": "/web/guia.html"
+    },
+    {
+      "source": "/cadastro",
+      "destination": "/web/cadastro.html"
     }
   ]
 }
