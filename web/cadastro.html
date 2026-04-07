@@ -222,7 +222,11 @@
       </div>
       <div class="col-md-6">
         <label class="form-label">Cargo</label>
-        <input type="text" id="cargo" class="form-control" required placeholder="Ex: Promotor, Analista...">
+        <select id="cargo" class="form-select" required>
+          <option value="" disabled selected>Selecione o cargo...</option>
+          <option value="Promotor Digital">Promotor Digital</option>
+          <option value="Analista de Atendimento">Analista de Atendimento</option>
+        </select>
       </div>
       <div class="col-md-6">
         <label class="form-label">Carga Horária</label>
