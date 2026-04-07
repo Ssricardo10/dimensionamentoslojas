@@ -1,118 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+  <meta charset="UTF-8">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f8fafc; font-family: 'Segoe UI', sans-serif; padding: 20px; }
-    .container-pro { max-width: 850px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border-top: 10px solid #0054a6; }
-    .header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; }
-    .header h2 { color: #0054a6; font-weight: 700; margin: 0; }
-    .section-title { font-size: 1rem; font-weight: 700; color: #0054a6; margin: 25px 0 15px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-    .form-label { font-weight: 600; color: #475569; font-size: 0.85rem; margin-bottom: 5px; }
-    .form-control, .form-select { border-radius: 6px; padding: 10px; border: 1px solid #e2e8f0; font-size: 0.9rem; }
-    .btn-enviar { background: #0054a6; color: white; padding: 15px; border-radius: 8px; border: none; font-weight: 700; width: 100%; transition: 0.3s; margin-top: 30px; }
-    .footer { margin-top: 30px; text-align: center; font-size: 0.8rem; color: #94a3b8; padding-top: 20px; }
+    body { background-color: #f4f7f9; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    .main-card { max-width: 850px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-top: 12px solid #0054a6; }
+    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #f0f0f0; padding-bottom: 20px; }
+    .header h2 { color: #0054a6; font-weight: 700; margin-bottom: 5px; }
+    .section-title { font-size: 1.05rem; font-weight: 700; color: #0054a6; margin: 30px 0 15px; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; text-transform: uppercase; }
+    .form-label { font-weight: 600; color: #333; font-size: 0.85rem; margin-bottom: 5px; }
+    .form-control, .form-select { border-radius: 6px; padding: 10px; border: 1px solid #ced4da; }
+    .form-control:focus, .form-select:focus { border-color: #0054a6; box-shadow: 0 0 0 3px rgba(0,84,166,0.1); }
+    .btn-enviar { background: #0054a6; color: white; padding: 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 1.1rem; width: 100%; margin-top: 35px; transition: 0.3s; }
+    .btn-enviar:hover { background: #003d7a; }
+    .footer { margin-top: 35px; text-align: center; font-size: 0.85rem; color: #777; }
   </style>
 </head>
 <body>
 
-<div class="container-pro">
+<div class="main-card">
   <div class="header">
     <h2>Sabesp | Trade Marketing</h2>
-    <p class="text-muted">Cadastro de Colaboradores - Planejamento</p>
+    <p class="text-muted">Portal de Cadastro de Colaboradores e Promotores</p>
   </div>
 
   <form id="formBI">
-    <div class="section-title">Identificação</div>
+    
+    <div class="section-title">1. Dados Profissionais</div>
     <div class="row g-3">
       <div class="col-md-6">
-        <label class="form-label">Endereço de e-mail</label>
-        <input type="email" id="emailLogado" class="form-control" required placeholder="exemplo@sabesp.com.br">
+        <label class="form-label">E-mail</label>
+        <input type="email" id="email" class="form-control" required placeholder="exemplo@sabesp.com.br">
       </div>
       <div class="col-md-6">
-        <label class="form-label">Matricula/RH</label>
-        <input type="text" id="matricula" class="form-control" required>
+        <label class="form-label">Matrícula/RH</label>
+        <input type="text" id="matricula" class="form-control" required placeholder="Sua matrícula">
       </div>
       <div class="col-md-6">
+        <label class="form-label">Cargo</label>
+        <input type="text" id="cargo" class="form-control" required placeholder="Ex: Promotor, Analista...">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Carga Horária</label>
+        <input type="text" id="cargaHoraria" class="form-control" required placeholder="Ex: 220h, 6h/dia...">
+      </div>
+      <div class="col-md-4">
         <label class="form-label">Tem Interesse?</label>
         <select id="interesse" class="form-select" required>
+          <option value="" disabled selected>Selecione...</option>
           <option value="Sim">Sim</option>
           <option value="Não">Não</option>
         </select>
       </div>
-      <div class="col-md-6">
+      <div class="col-md-8">
         <label class="form-label">Loja/Interesse</label>
-<select id="loja" class="form-select" required>
-  <option value="" selected disabled>Escolha a agência...</option>
-  <option value="SEM INTERESSE">SEM INTERESSE</option>
-  <option value="Agência Mooca">Agência Mooca</option>
-  <option value="Arthur Alvim">Arthur Alvim</option>
-  <option value="Arujá">Arujá</option>
-  <option value="Biritiba-Mirim">Biritiba-Mirim</option>
-  <option value="Caieiras">Caieiras</option>
-  <option value="Cajamar">Cajamar</option>
-  <option value="Chacara Santo Antonio">Chacara Santo Antonio</option>
-  <option value="Cidade Martins">Cidade Martins</option>
-  <option value="Descomplica Butantã">Descomplica Butantã</option>
-  <option value="Descomplica Campo Limpo">Descomplica Campo Limpo</option>
-  <option value="Descomplica Capela do Socorro">Descomplica Capela do Socorro</option>
-  <option value="Descomplica Cidade Tiradentes">Descomplica Cidade Tiradentes</option>
-  <option value="Descomplica Mooca">Descomplica Mooca</option>
-  <option value="Descomplica Parelheiros">Descomplica Parelheiros</option>
-  <option value="Descomplica Penha">Descomplica Penha</option>
-  <option value="Descomplica São Miguel Paulista">Descomplica São Miguel Paulista</option>
-  <option value="Embu das Artes">Embu das Artes</option>
-  <option value="Embu-Guaçu">Embu-Guaçu</option>
-  <option value="Fácil Shopping Bonsucesso">Fácil Shopping Bonsucesso</option>
-  <option value="Ferraz de Vasconcelos">Ferraz de Vasconcelos</option>
-  <option value="Francisco Morato">Francisco Morato</option>
-  <option value="Franco da Rocha">Franco da Rocha</option>
-  <option value="Freguesia do Ó">Freguesia do Ó</option>
-  <option value="Ganha Tempo Barueri">Ganha Tempo Barueri</option>
-  <option value="Gopoúva">Gopoúva</option>
-  <option value="Guararema">Guararema</option>
-  <option value="Guarulhos- Câmara Municipal">Guarulhos- Câmara Municipal</option>
-  <option value="Ipiranga">Ipiranga</option>
-  <option value="Itaim Paulista">Itaim Paulista</option>
-  <option value="Itapecerica da Serra">Itapecerica da Serra</option>
-  <option value="Itaquaquecetuba">Itaquaquecetuba</option>
-  <option value="Jandira">Jandira</option>
-  <option value="Jardins">Jardins</option>
-  <option value="Juquitiba">Juquitiba</option>
-  <option value="M' Boi Mirim">M' Boi Mirim</option>
-  <option value="Mairiporã">Mairiporã</option>
-  <option value="Major Rugde">Major Rugde</option>
-  <option value="Pinheiros - SEDE">Pinheiros - SEDE</option>
-  <option value="Pirapora do Bom Jesus">Pirapora do Bom Jesus</option>
-  <option value="Pirituba">Pirituba</option>
-  <option value="Poá">Poá</option>
-  <option value="Polo Taboão da Serra">Polo Taboão da Serra</option>
-  <option value="Resolve Fácil Itapevi">Resolve Fácil Itapevi</option>
-  <option value="Ribeirão Pires">Ribeirão Pires</option>
-  <option value="Rio Grande da Serra">Rio Grande da Serra</option>
-  <option value="Salesópolis">Salesópolis</option>
-  <option value="Santa Isabel">Santa Isabel</option>
-  <option value="Santana">Santana</option>
-  <option value="Santana do Parnaíba">Santana do Parnaíba</option>
-  <option value="Santo André -AG">Santo André -AG</option>
-  <option value="São Lorenço da serra">São Lorenço da serra</option>
-  <option value="São Mateus">São Mateus</option>
-  <option value="Vargem Grande Paulista">Vargem Grande Paulista</option>
-</select>
+        <select id="loja" class="form-select" required>
+          <option value="" disabled selected>Selecione a loja...</option>
+          <option value="SEM INTERESSE">SEM INTERESSE</option>
+          <option value="Agência Mooca">Agência Mooca</option>
+          <option value="Arthur Alvim">Arthur Alvim</option>
+          <option value="Arujá">Arujá</option>
+          <option value="Biritiba-Mirim">Biritiba-Mirim</option>
+          <option value="Caieiras">Caieiras</option>
+          <option value="Cajamar">Cajamar</option>
+          <option value="Chacara Santo Antonio">Chacara Santo Antonio</option>
+          <option value="Cidade Martins">Cidade Martins</option>
+          <option value="Descomplica Butantã">Descomplica Butantã</option>
+          <option value="Descomplica Campo Limpo">Descomplica Campo Limpo</option>
+          <option value="Descomplica Capela do Socorro">Descomplica Capela do Socorro</option>
+          <option value="Descomplica Cidade Tiradentes">Descomplica Cidade Tiradentes</option>
+          <option value="Descomplica Mooca">Descomplica Mooca</option>
+          <option value="Descomplica Parelheiros">Descomplica Parelheiros</option>
+          <option value="Descomplica Penha">Descomplica Penha</option>
+          <option value="Descomplica São Miguel Paulista">Descomplica São Miguel Paulista</option>
+          <option value="Embu das Artes">Embu das Artes</option>
+          <option value="Embu-Guaçu">Embu-Guaçu</option>
+          <option value="Fácil Shopping Bonsucesso">Fácil Shopping Bonsucesso</option>
+          <option value="Ferraz de Vasconcelos">Ferraz de Vasconcelos</option>
+          <option value="Francisco Morato">Francisco Morato</option>
+          <option value="Franco da Rocha">Franco da Rocha</option>
+          <option value="Freguesia do Ó">Freguesia do Ó</option>
+          <option value="Ganha Tempo Barueri">Ganha Tempo Barueri</option>
+          <option value="Gopoúva">Gopoúva</option>
+          <option value="Guararema">Guararema</option>
+          <option value="Guarulhos- Câmara Municipal">Guarulhos- Câmara Municipal</option>
+          <option value="Ipiranga">Ipiranga</option>
+          <option value="Itaim Paulista">Itaim Paulista</option>
+          <option value="Itapecerica da Serra">Itapecerica da Serra</option>
+          <option value="Itaquaquecetuba">Itaquaquecetuba</option>
+          <option value="Jandira">Jandira</option>
+          <option value="Jardins">Jardins</option>
+          <option value="Juquitiba">Juquitiba</option>
+          <option value="M' Boi Mirim">M' Boi Mirim</option>
+          <option value="Mairiporã">Mairiporã</option>
+          <option value="Major Rugde">Major Rugde</option>
+          <option value="Pinheiros - SEDE">Pinheiros - SEDE</option>
+          <option value="Pirapora do Bom Jesus">Pirapora do Bom Jesus</option>
+          <option value="Pirituba">Pirituba</option>
+          <option value="Poá">Poá</option>
+          <option value="Polo Taboão da Serra">Polo Taboão da Serra</option>
+          <option value="Resolve Fácil Itapevi">Resolve Fácil Itapevi</option>
+          <option value="Ribeirão Pires">Ribeirão Pires</option>
+          <option value="Rio Grande da Serra">Rio Grande da Serra</option>
+          <option value="Salesópolis">Salesópolis</option>
+          <option value="Santa Isabel">Santa Isabel</option>
+          <option value="Santana">Santana</option>
+          <option value="Santana do Parnaíba">Santana do Parnaíba</option>
+          <option value="Santo André -AG">Santo André -AG</option>
+          <option value="São Lorenço da serra">São Lorenço da serra</option>
+          <option value="São Mateus">São Mateus</option>
+          <option value="Vargem Grande Paulista">Vargem Grande Paulista</option>
+        </select>
       </div>
     </div>
 
-    <div class="section-title">Informações de Endereço</div>
+    <div class="section-title">2. Informações de Endereço e Contato</div>
     <div class="row g-3">
-      <div class="col-md-9"><label class="form-label">Rua (do Colaborador)</label><input type="text" id="rua" class="form-control"></div>
-      <div class="col-md-3"><label class="form-label">Número da casa</label><input type="text" id="numero" class="form-control"></div>
-      <div class="col-md-6"><label class="form-label">Bairro (do Colaborador)</label><input type="text" id="bairro" class="form-control"></div>
-      <div class="col-md-6"><label class="form-label">Cidade (do Colaborador)</label><input type="text" id="cidade" class="form-control"></div>
-      <div class="col-md-4"><label class="form-label">Cep (do Colaborador)</label><input type="text" id="cep" class="form-control"></div>
-      <div class="col-md-4"><label class="form-label">Telefone (do Colaborador)</label><input type="text" id="telefone" class="form-control"></div>
+      <div class="col-md-9">
+        <label class="form-label">Rua (do Colaborador)</label>
+        <input type="text" id="rua" class="form-control" placeholder="Nome da rua/avenida">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Número da casa</label>
+        <input type="text" id="numero" class="form-control">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Bairro (do Colaborador)</label>
+        <input type="text" id="bairro" class="form-control">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Cidade (do Colaborador)</label>
+        <input type="text" id="cidade" class="form-control">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Cep (do Colaborador)</label>
+        <input type="text" id="cep" class="form-control" placeholder="00000-000">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Telefone (do Colaborador)</label>
+        <input type="text" id="telefone" class="form-control" placeholder="(11) 90000-0000">
+      </div>
     </div>
 
-    <button type="button" onclick="enviar()" class="btn-enviar" id="btnEnviar">REGISTRAR SOLICITAÇÃO</button>
+    <button type="button" onclick="enviar()" class="btn-enviar" id="btnSubmit">SALVAR INFORMAÇÕES</button>
   </form>
 
   <div class="footer">
@@ -123,28 +154,38 @@
 
 <script>
   function enviar() {
-    const btn = document.getElementById('btnEnviar');
-    btn.disabled = true; btn.innerText = "PROCESSANDO...";
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true; 
+    btn.innerText = "REGISTRANDO DADOS...";
 
     const payload = {
-      emailLogado: document.getElementById('emailLogado').value,
+      email: document.getElementById('email').value,
       matricula: document.getElementById('matricula').value,
+      cargo: document.getElementById('cargo').value,
+      cargaHoraria: document.getElementById('cargaHoraria').value,
       interesse: document.getElementById('interesse').value,
       loja: document.getElementById('loja').value,
       rua: document.getElementById('rua').value || "",
+      numero: document.getElementById('numero').value || "",
       bairro: document.getElementById('bairro').value || "",
       cidade: document.getElementById('cidade').value || "",
-      numero: document.getElementById('numero').value || "",
       cep: document.getElementById('cep').value || "",
-      telefone: document.getElementById('telefone').value || "",
-      emailPessoal: document.getElementById('emailPessoal').value || ""
+      telefone: document.getElementById('telefone').value || ""
     };
 
-    google.script.run.withSuccessHandler(function(r) {
-      alert(r);
-      document.getElementById('formBI').reset();
-      btn.disabled = false; btn.innerText = "REGISTRAR SOLICITAÇÃO";
-    }).salvarDados(payload);
+    google.script.run
+      .withSuccessHandler(function(resposta) {
+        alert(resposta);
+        document.getElementById('formBI').reset();
+        btn.disabled = false; 
+        btn.innerText = "SALVAR INFORMAÇÕES";
+      })
+      .withFailureHandler(function(erro) {
+        alert("Falha de conexão: " + erro);
+        btn.disabled = false; 
+        btn.innerText = "SALVAR INFORMAÇÕES";
+      })
+      .salvarDados(payload);
   }
 </script>
 </body>
