@@ -11,28 +11,40 @@
 // 5. Copie a nova URL gerada e atualize no cadastro.html
 // ===========================================
 
+function doGet() {
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('Portal Trade Marketing | Sabesp')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
 function doPost(e) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName('Respostas ao formulário 1') || ss.getSheets()[0];
     const dados = JSON.parse(e.postData.contents);
     
-    sheet.appendRow([
-      new Date(),
-      dados.email,
-      dados.matricula,
-      dados.cargo,
-      dados.cargaHoraria,
-      dados.interesse,
-      dados.loja,
-      dados.rua,
-      dados.numero,
-      dados.bairro,
-      dados.cidade,
-      dados.cep,
-      dados.telefone
+    // ORDEM EXATA DAS 15 COLUNAS (A até O)
+    aba.appendRow([
+      new Date(),           // 1. Carimbo de data/hora
+      dados.email,          // 2. Endereço de e-mail
+      dados.matricula,      // 3. Matricula/RH
+      dados.interesse,      // 4. Tem Interesse?
+      dados.loja,           // 5. Loja/Interesse
+      dados.rua,            // 6. Rua (do Colaborador)
+      dados.bairro,         // 7. Bairro (do Colaborador)
+      dados.cidade,         // 8. Cidade (do Colaborador)
+      dados.numero,         // 9. Número da casa (do Colaborador)
+      dados.cep,            // 10. Cep (do Colaborador)
+      dados.telefone,       // 11. Telefone (do Colaborador)
+      dados.email,          // 12. E-mail (do Colaborador) - Repete o e-mail
+      dados.cargo,          // 13. CARGO
+      dados.cargaHoraria,   // 14. CARGA HORÁRIA
+      dados.nome            // 15. NOME
     ]);
     
-    return ContentService.createTextOutput(JSON.stringify({status: "ok", message: "Dados salvos com sucesso!"}))
+    return ContentService.createTextOutput(JSON.stringify({status: "ok", message: "Dados salvos!"}))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (erro) {
@@ -41,8 +53,32 @@ function doPost(e) {
   }
 }
 
-// Função para testar se está funcionando
-function doGet(e) {
-  return ContentService.createTextOutput("API funcionando! Use POST para enviar dados.")
-    .setMimeType(ContentService.MimeType.TEXT);
+// Para uso com google.script.run (quando HTML é servido pelo Apps Script)
+function salvarDados(obj) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName('Respostas ao formulário 1') || ss.getSheets()[0];
+    
+    aba.appendRow([
+      new Date(),
+      obj.email,
+      obj.matricula,
+      obj.interesse,
+      obj.loja,
+      obj.rua,
+      obj.bairro,
+      obj.cidade,
+      obj.numero,
+      obj.cep,
+      obj.telefone,
+      obj.email,
+      obj.cargo,
+      obj.cargaHoraria,
+      obj.nome
+    ]);
+    
+    return "✅ Cadastro salvo com sucesso!";
+  } catch (e) {
+    return "❌ Erro: " + e.toString();
+  }
 }
