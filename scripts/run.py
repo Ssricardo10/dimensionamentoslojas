@@ -39,11 +39,16 @@ def main():
     print("\n💾 Gerando JSON...")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     dados = build_json(lojas, funcionarios)
-    DADOS_JSON.write_text(
-        json.dumps(dados, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    json_content = json.dumps(dados, ensure_ascii=False, indent=2)
+    DADOS_JSON.write_text(json_content, encoding="utf-8")
     print(f"  ✓ {DADOS_JSON}")
+
+    # Copia para web/ (consumido pelo frontend)
+    from src.config import WEB_DIR
+    WEB_DIR.mkdir(parents=True, exist_ok=True)
+    web_json = WEB_DIR / "dados_alocacao.json"
+    web_json.write_text(json_content, encoding="utf-8")
+    print(f"  ✓ {web_json}")
 
     print("\n" + "=" * 60)
     print(f"  ✅ {len(lojas)} lojas | {len(funcionarios)} funcionários")

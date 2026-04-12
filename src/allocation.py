@@ -8,6 +8,7 @@ from src.config import LOJAS_XLSX, FUNCIONARIOS_XLSX, CORES_ZONAS
 from src.models import Loja, Funcionario
 from src.geocoding import Geocoder
 from src.distance import haversine, tempo_deslocamento, custo_mensal
+from src.coordinators import CoordenadorAllocator
 
 
 def load_lojas(geocoder: Geocoder) -> list[Loja]:
@@ -68,6 +69,8 @@ def load_funcionarios(geocoder: Geocoder) -> list[Funcionario]:
 
 def build_json(lojas: list[Loja], funcionarios: list[Funcionario]) -> dict:
     """Monta o JSON final consumido pelo frontend."""
+    
+    # 1. Dados das lojas
     lojas_data = []
     for loja in lojas:
         zona_info = CORES_ZONAS.get(loja.un, {})
@@ -88,6 +91,7 @@ def build_json(lojas: list[Loja], funcionarios: list[Funcionario]) -> dict:
             "cor_hex": zona_info.get("cor", "#95a5a6"),
         })
 
+    # 2. Dados dos funcionários
     funcs_data = []
     for func in funcionarios:
         # Calcula distância para cada loja
@@ -115,8 +119,32 @@ def build_json(lojas: list[Loja], funcionarios: list[Funcionario]) -> dict:
             "lojas_proximas": proximas,
         })
 
-    return {
+    # 3. Alocação de coordenadores
+    try:
+        allocator = CoordenadorAllocator(lojas)
+        alocacao_coords = allocator.alocar()
+        
+        coordenadores_data = {
+            "total": alocacao_coords["total_coordenadores"],
+            "meta": alocacao_coords["meta_coordenadores"],
+            "status": alocacao_coords["status"],
+            "alocados": alocacao_coords["coordenadores"],
+            "grupos_pequenas": alocacao_coords["grupos_pequenas"],
+            "mapa_loja": alocacao_coords["mapa_loja"],
+            "resumo": alocacao_coords["resumo_por_tipo"],
+        }
+    except Exception as e:
+        print(f"\n⚠️ Erro ao alocar coordenadores: {e}")
+        print("Continuando sem dados de coordenadores...")
+        coordenadores_data = None
+
+    result = {
         "lojas": lojas_data,
         "funcionarios": funcs_data,
         "cores_zonas": CORES_ZONAS,
     }
+    
+    if coordenadores_data:
+        result["coordenadores"] = coordenadores_data
+    
+    return result

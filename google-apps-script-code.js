@@ -11,17 +11,14 @@
 // 5. Copie a nova URL gerada e atualize no cadastro.html
 // ===========================================
 
-function doGet() {
-  return HtmlService.createTemplateFromFile('Index')
-    .evaluate()
-    .setTitle('Portal Trade Marketing | Sabesp')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+function doGet(e) {
+  return ContentService.createTextOutput("API Trade Marketing - Sabesp ✅ Funcionando!")
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 function doPost(e) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById("1MM_E9YhOr8n1V3x33_YL3NHl6awPZ-6orIwMUb7MVZ8");
     const aba = ss.getSheetByName('Respostas ao formulário 1') || ss.getSheets()[0];
     const dados = JSON.parse(e.postData.contents);
     
@@ -56,7 +53,7 @@ function doPost(e) {
 // Para uso com google.script.run (quando HTML é servido pelo Apps Script)
 function salvarDados(obj) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById("1MM_E9YhOr8n1V3x33_YL3NHl6awPZ-6orIwMUb7MVZ8");
     const aba = ss.getSheetByName('Respostas ao formulário 1') || ss.getSheets()[0];
     
     aba.appendRow([
@@ -81,4 +78,33 @@ function salvarDados(obj) {
   } catch (e) {
     return "❌ Erro: " + e.toString();
   }
+}
+
+// ========== FUNÇÃO DE TESTE ==========
+// Execute esta função para testar se está gravando corretamente
+function testeGravacao() {
+  const ss = SpreadsheetApp.openById("1MM_E9YhOr8n1V3x33_YL3NHl6awPZ-6orIwMUb7MVZ8");
+  const aba = ss.getSheetByName('Respostas ao formulário 1') || ss.getSheets()[0];
+  
+  Logger.log("Gravando na aba: " + aba.getName());
+  
+  aba.appendRow([
+    new Date(),
+    "teste@email.com",
+    "12345",
+    "Sim",
+    "Loja Teste",
+    "Rua Teste",
+    "Bairro Teste",
+    "Cidade Teste",
+    "123",
+    "00000-000",
+    "(11) 99999-9999",
+    "teste@email.com",
+    "Promotor Digital",
+    "220h",
+    "TESTE - Pode Apagar"
+  ]);
+  
+  Logger.log("✅ Gravação de teste concluída! Verifique a planilha.");
 }

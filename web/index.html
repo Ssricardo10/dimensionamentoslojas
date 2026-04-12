@@ -36,11 +36,11 @@
         .page-link.active { background: #fff; color: var(--primary); }
         
         /* Tabs */
-        .tabs { display: flex; border-bottom: 2px solid #e5e7eb; background: #fafbfc; }
-        .tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+        .tabs { display: flex; border-bottom: 2px solid #e5e7eb; background: #fafbfc; flex-wrap: wrap; }
+        .tab { flex: 1; min-width: 100px; padding: 10px 4px; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
         .tab:hover { color: var(--text); background: #f3f4f6; }
         .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .tab .icon { font-size: 16px; display: block; margin-bottom: 2px; }
+        .tab .icon { font-size: 15px; display: block; margin-bottom: 2px; }
         
         /* Content */
         .content { flex: 1; overflow-y: auto; padding: 16px; }
@@ -454,6 +454,7 @@
                 <div class="tab active" onclick="switchTab('dashboard')"><span class="icon">📊</span>Dashboard</div>
                 <div class="tab" onclick="switchTab('zones')"><span class="icon">🗺️</span>Zonas</div>
                 <div class="tab" onclick="switchTab('stores')"><span class="icon">🏢</span>Lojas</div>
+                <div class="tab" onclick="switchTab('coordinators')"><span class="icon">👔</span>Coordenadores</div>
                 <div class="tab" onclick="switchTab('executive')"><span class="icon">🎯</span>Executivo</div>
                 <div class="tab" onclick="switchTab('search')"><span class="icon">🔍</span>Busca</div>
             </div>
@@ -462,6 +463,7 @@
                 <div id="v-dashboard" class="view active"></div>
                 <div id="v-zones" class="view"></div>
                 <div id="v-stores" class="view"></div>
+                <div id="v-coordinators" class="view"></div>
                 <div id="v-executive" class="view"></div>
                 <div id="v-search" class="view"></div>
             </div>
@@ -1106,10 +1108,11 @@ function buildPopup(loja, num) {
 function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    event?.target?.closest?.('.tab')?.classList.add('active') || document.querySelectorAll('.tab')[['dashboard','zones','stores','executive','search'].indexOf(tab)]?.classList.add('active');
+    event?.target?.closest?.('.tab')?.classList.add('active') || document.querySelectorAll('.tab')[['dashboard','zones','stores','coordinators','executive','search'].indexOf(tab)]?.classList.add('active');
     document.getElementById('v-' + tab).classList.add('active');
     if (tab === 'stores' && selectedStore) renderAllocation();
     if (tab === 'executive') renderExecutive();
+    if (tab === 'coordinators') renderCoordinators();
 }
 
 // ===== DASHBOARD =====
@@ -1274,6 +1277,213 @@ function renderExecutive() {
             <div class="card-title">🧾 Auditoria Recente</div>
             ${logs.length ? logs.map(l => `<div class="note-box" style="margin-bottom:6px"><b>${new Date(l.ts).toLocaleString('pt-BR')}</b> · [${l.scenario}] ${l.action}<br>${l.loja || ''} ${l.nome || ''} ${l.cadastro ? '('+l.cadastro+')' : ''}</div>`).join('') : '<div class="note-box">Sem eventos registrados ainda.</div>'}
         </div>`;
+}
+
+// ===== COORDINATORS =====
+function renderCoordinators() {
+    if (!data.coordenadores) {
+        document.getElementById('v-coordinators').innerHTML = `
+            <div class="alert-box danger">
+                ❌ Dados de coordenadores não encontrados. Execute <code>python scripts/run.py</code> para gerar.
+            </div>`;
+        return;
+    }
+
+    const coords = data.coordenadores;
+    const alocados = coords.alocados || [];
+    const grupos = coords.grupos_pequenas || [];
+    const resumo = coords.resumo || {};
+    const mapaLoja = coords.mapa_loja || {};
+
+    const filterType = window.coordFilterType || 'todos';
+    let coordsFiltered = alocados;
+    if (filterType !== 'todos') {
+        coordsFiltered = alocados.filter(c => c.tipo === filterType);
+    }
+
+    const statusColor = coords.status === 'completo' ? '#16a34a' : '#f59e0b';
+    const statusIcon = coords.status === 'completo' ? '✅' : '⚠️';
+    const statusText = coords.status === 'completo' ? 'Completo' : 'Ajuste necessário';
+
+    // Contagem por tipo
+    const qtdDupla = alocados.filter(c => c.tipo === 'dupla').length;
+    const qtdIndiv = alocados.filter(c => c.tipo === 'individual').length;
+    const qtdAgrup = alocados.filter(c => c.tipo === 'agrupador').length;
+
+    // Distribuição por zona
+    const zoneDistribution = {};
+    alocados.forEach(c => {
+        const loja = data.lojas.find(l => l.id === c.loja_id);
+        if (loja) {
+            if (!zoneDistribution[loja.un]) {
+                zoneDistribution[loja.un] = { nome: loja.zona, total: 0, lojas: new Set() };
+            }
+            zoneDistribution[loja.un].total++;
+            zoneDistribution[loja.un].lojas.add(loja.nome);
+        }
+    });
+
+    // Tabela por loja com coordenadores
+    const lojaCoordRows = data.lojas.map(l => {
+        const cList = mapaLoja[l.id] || [];
+        const qtdCoords = cList.length;
+        const tipos = cList.map(c => c.tipo);
+        const compartilhado = cList.some(c => c.tipo === 'agrupador');
+        return { loja: l, coords: cList, qtd: qtdCoords, compartilhado };
+    }).sort((a, b) => b.loja.vagas_agentes - a.loja.vagas_agentes);
+
+    document.getElementById('v-coordinators').innerHTML = `
+        <div class="card">
+            <div class="card-title">👔 Gestão de Coordenadores</div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-val" style="color:${statusColor}">${coords.total || 0}</div>
+                    <div class="metric-label">${statusIcon} Alocados</div>
+                    <div class="metric-sub">Meta: ${coords.meta || 61}</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val" style="color:#92400e">${qtdDupla}</div>
+                    <div class="metric-label">👥 Dupla</div>
+                    <div class="metric-sub">${resumo.lojas_grandes || 0} lojas >10 PAs</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val" style="color:#1e40af">${qtdIndiv}</div>
+                    <div class="metric-label">👤 Individual</div>
+                    <div class="metric-sub">1 coord/loja</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val" style="color:#065f46">${qtdAgrup}</div>
+                    <div class="metric-label">🤝 Agrupador</div>
+                    <div class="metric-sub">${grupos.length} grupos formados</div>
+                </div>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:#f0f9ff;border-radius:8px;font-size:11px;color:#1e40af">
+                <b>Regra:</b> >10 PAs = 2 coords | ≤10 PAs = 1 coord | Lojas pequenas próximas agrupadas<br>
+                <b>Economia:</b> ${resumo.bruto_sem_agrupamento || 0} necessários → ${coords.total} alocados (${resumo.economia || 0} economizados via agrupamento)
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title" style="justify-content:space-between">
+                🏢 Coordenadores por Loja (${data.lojas.length} lojas)
+                <button class="btn btn-export" onclick="exportCoordinators()">📥 Exportar XLS</button>
+            </div>
+            <div style="max-height:500px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px">
+                <table style="width:100%;font-size:11px;border-collapse:collapse">
+                    <thead style="position:sticky;top:0;background:#f9fafb;z-index:1">
+                        <tr>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Loja</th>
+                            <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb">PAs</th>
+                            <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb">Coords</th>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Tipo</th>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Horário</th>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Obs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lojaCoordRows.map(r => {
+                            const l = r.loja;
+                            const tipoLabel = r.qtd >= 2 && !r.compartilhado ? 'dupla' : r.compartilhado ? 'agrupador' : 'individual';
+                            const tipoBg = tipoLabel === 'dupla' ? '#fed7aa' : tipoLabel === 'agrupador' ? '#d1fae5' : '#dbeafe';
+                            const tipoColor = tipoLabel === 'dupla' ? '#92400e' : tipoLabel === 'agrupador' ? '#065f46' : '#1e40af';
+                            const obs = r.coords.filter(c => c.tipo === 'agrupador').map(c => 'Compartilha: ' + (c.compartilhado_com || []).join(', ')).join('; ');
+                            const coordExcl = r.coords.filter(c => c.tipo !== 'agrupador').length;
+                            const coordCompart = r.coords.filter(c => c.tipo === 'agrupador').length;
+                            const qtdDisplay = coordCompart > 0 ? coordExcl + '+' + coordCompart + '*' : String(r.qtd);
+                            return '<tr style="border-bottom:1px solid #f3f4f6">' +
+                                '<td style="padding:8px;font-weight:600">' + l.nome + '</td>' +
+                                '<td style="padding:8px;text-align:center;font-weight:700">' + l.vagas_agentes + '</td>' +
+                                '<td style="padding:8px;text-align:center;font-weight:700;color:var(--primary)" title="' + (coordCompart > 0 ? coordCompart + ' compartilhado(s) com outra loja' : '') + '">' + qtdDisplay + '</td>' +
+                                '<td style="padding:8px"><span style="background:' + tipoBg + ';color:' + tipoColor + ';padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase">' + tipoLabel + '</span></td>' +
+                                '<td style="padding:8px;color:#6b7280;font-size:10px">' + l.horario + '</td>' +
+                                '<td style="padding:8px;color:#6b7280;font-size:10px">' + (obs || '-') + '</td>' +
+                                '</tr>';
+                        }).join('')}
+                    </tbody>
+                    <tfoot style="background:#f9fafb;font-weight:700">
+                        <tr>
+                            <td style="padding:8px">TOTAL</td>
+                            <td style="padding:8px;text-align:center">${data.lojas.reduce((s,l) => s + l.vagas_agentes, 0)}</td>
+                            <td style="padding:8px;text-align:center;color:var(--primary)">${coords.total} únicos</td>
+                            <td colspan="3" style="padding:8px;font-weight:400;font-size:10px;color:#6b7280">* = compartilhado com outra loja (agrupador)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title" style="justify-content:space-between">
+                📋 Lista de Coordenadores
+                <span style="font-size:11px;color:#6b7280">${alocados.length} coordenadores</span>
+            </div>
+            <div style="margin-bottom:12px">
+                <div class="panel-row">
+                    <button class="pill-btn ${filterType==='todos'?'active':''}" onclick="filterCoordinators('todos')">Todos (${alocados.length})</button>
+                    <button class="pill-btn ${filterType==='dupla'?'active':''}" onclick="filterCoordinators('dupla')">Dupla (${qtdDupla})</button>
+                    <button class="pill-btn ${filterType==='individual'?'active':''}" onclick="filterCoordinators('individual')">Individual (${qtdIndiv})</button>
+                    <button class="pill-btn ${filterType==='agrupador'?'active':''}" onclick="filterCoordinators('agrupador')">Agrupador (${qtdAgrup})</button>
+                </div>
+            </div>
+            <div style="max-height:350px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px">
+                <table style="width:100%;font-size:11px;border-collapse:collapse">
+                    <thead style="position:sticky;top:0;background:#f9fafb;z-index:1">
+                        <tr>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">ID</th>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Tipo</th>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Loja(s)</th>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Município</th>
+                            <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Horário</th>
+                            <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb">PAs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${coordsFiltered.map(c => {
+                            const tipoBg = c.tipo === 'individual' ? '#dbeafe' : c.tipo === 'dupla' ? '#fed7aa' : '#d1fae5';
+                            const tipoColor = c.tipo === 'individual' ? '#1e40af' : c.tipo === 'dupla' ? '#92400e' : '#065f46';
+                            return '<tr style="border-bottom:1px solid #f3f4f6">' +
+                                '<td style="padding:8px;font-weight:700;color:var(--primary);font-family:monospace">#' + String(c.id).padStart(3, '0') + '</td>' +
+                                '<td style="padding:8px"><span style="background:' + tipoBg + ';color:' + tipoColor + ';padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase">' + c.tipo + '</span></td>' +
+                                '<td style="padding:8px;font-weight:600">' + c.loja_nome + '</td>' +
+                                '<td style="padding:8px;color:#6b7280">' + c.municipio + '</td>' +
+                                '<td style="padding:8px;color:#6b7280;font-size:10px">' + (c.horario || '') + '</td>' +
+                                '<td style="padding:8px;text-align:center;font-weight:700">' + c.vagas_agentes + '</td>' +
+                                '</tr>';
+                        }).join('')}
+                        ${coordsFiltered.length === 0 ? '<tr><td colspan="6" style="padding:20px;text-align:center;color:#6b7280">Nenhum coordenador encontrado com este filtro.</td></tr>' : ''}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        ${grupos.length > 0 ? `
+        <div class="card">
+            <div class="card-title">🤝 Grupos de Lojas Agrupadas (${grupos.length} grupos)</div>
+            ${grupos.map(g => '<div class="candidate" style="background:#f0fdf4;border-color:#bbf7d0">' +
+                '<div class="cand-top">' +
+                    '<div class="cand-name">👔 Coord #' + String(g.coordenador_id).padStart(3, '0') + '</div>' +
+                    '<div class="cand-dist"><b>' + g.distancia_maxima_km + ' km</b> entre lojas</div>' +
+                '</div>' +
+                '<div class="cand-meta">' +
+                    g.lojas.map(function(l) { return '<span class="cand-chip">📍 ' + l.loja_nome + ' (' + l.vagas_agentes + ' PAs) - ' + l.municipio + '</span>'; }).join('') +
+                '</div>' +
+            '</div>').join('')}
+        </div>` : ''}
+
+        <div class="card">
+            <div class="card-title">🗺️ Distribuição por Zona</div>
+            ${Object.entries(zoneDistribution).map(([code, z]) => {
+                const zoneColor = data.cores_zonas[code]?.cor || '#6b7280';
+                return '<div class="zone" style="border-color:' + zoneColor + '">' +
+                    '<div class="zone-name" style="color:' + zoneColor + '">' + z.nome + '</div>' +
+                    '<div class="zone-stats">' +
+                        '<div class="zone-stat"><b>' + z.total + '</b> coords</div>' +
+                        '<div class="zone-stat"><b>' + z.lojas.size + '</b> lojas</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('')}
+        </div>
+    `;
 }
 
 // ===== STORE LIST =====
@@ -1596,14 +1806,16 @@ function searchPeople(term) {
 function exportExcel() {
     const wb = XLSX.utils.book_new();
     
-    // Sheet 1: Resumo
-    const resumo = [['SABESP - Relatório de Alocação', '', '', '', '', '', ''],
-        ['Data:', new Date().toLocaleDateString('pt-BR'), '', '', '', '', ''],
-        ['', '', '', '', '', '', ''],
-        ['Loja', 'Zona', 'UN', 'Vagas', 'Alocados', 'Pendentes', 'Ocupação']];
+    // Sheet 1: Resumo (com coordenadores)
+    const mlj = data.coordenadores?.mapa_loja || {};
+    const resumo = [['SABESP - Relatório de Alocação', '', '', '', '', '', '', '', ''],
+        ['Data:', new Date().toLocaleDateString('pt-BR'), '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', '', ''],
+        ['Loja', 'Zona', 'UN', 'PAs', 'Vagas', 'Alocados', 'Pendentes', 'Ocupação', 'Coordenadores']];
     data.lojas.forEach(l => {
         const al = (allocs[l.nome]||[]).length;
-        resumo.push([l.nome, l.zona, l.un, l.total_hcs, al, l.total_hcs - al, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1)+'%' : '0%']);
+        const nc = (mlj[l.id] || []).length;
+        resumo.push([l.nome, l.zona, l.un, l.vagas_agentes, l.total_hcs, al, l.total_hcs - al, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1)+'%' : '0%', nc]);
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), 'Resumo');
 
@@ -1626,16 +1838,24 @@ function exportExcel() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(funcs), 'Funcionários');
 
-    // Sheet 4: Análise por Loja
-    const porLoja = [['Loja', 'Zona', 'Vagas', 'Alocados', 'Taxa', 'Disponíveis ≤10km', 'Disponíveis ≤20km', 'Total ≤10km', 'Total ≤20km']];
+    // Sheet 4: Análise por Loja (com coordenadores)
+    const mapaLoja = data.coordenadores?.mapa_loja || {};
+    const porLoja = [['Loja', 'Zona', 'Horário', 'PAs', 'Vagas', 'Alocados', 'Taxa', 'Coords Exclusivos', 'Coords Compartilhados*', 'Tipo Coord', 'Compartilha com', 'Disponíveis ≤10km', 'Disponíveis ≤20km', 'Total ≤10km', 'Total ≤20km']];
     data.lojas.forEach(l => {
         const al = (allocs[l.nome]||[]).length;
         const prox10 = data.funcionarios.filter(f => { const i = f.lojas_proximas.find(x => x.loja_id === l.id); return i && i.distancia_km <= 10; });
         const prox20 = data.funcionarios.filter(f => { const i = f.lojas_proximas.find(x => x.loja_id === l.id); return i && i.distancia_km <= 20; });
         const disp10 = prox10.filter(f => classifyFormes(f.resposta_interesse).type === 'disponivel').length;
         const disp20 = prox20.filter(f => classifyFormes(f.resposta_interesse).type === 'disponivel').length;
-        porLoja.push([l.nome, l.zona, l.total_hcs, al, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1)+'%' : '0%', disp10, disp20, prox10.length, prox20.length]);
+        const cList = mapaLoja[l.id] || [];
+        const exclusivos = cList.filter(c => c.tipo !== 'agrupador').length;
+        const compartilhados = cList.filter(c => c.tipo === 'agrupador').length;
+        const tipoCoord = exclusivos >= 2 ? 'dupla' : compartilhados > 0 ? 'agrupador' : 'individual';
+        const compartilha = cList.filter(c => c.tipo === 'agrupador').flatMap(c => c.compartilhado_com || []).join(', ') || '-';
+        porLoja.push([l.nome, l.zona, l.horario, l.vagas_agentes, l.total_hcs, al, l.total_hcs ? ((al/l.total_hcs)*100).toFixed(1)+'%' : '0%', exclusivos, compartilhados, tipoCoord, compartilha, disp10, disp20, prox10.length, prox20.length]);
     });
+    porLoja.push([]);
+    porLoja.push(['*Coords compartilhados (agrupador) atendem 2 lojas próximas. Total único: ' + (data.coordenadores?.total || 61)]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(porLoja), 'Análise por Loja');
 
     // Sheet 5: Contato Prioritário
@@ -1667,6 +1887,115 @@ function exportExcel() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(auditoria), 'Auditoria');
 
     XLSX.writeFile(wb, `SABESP_Alocacao_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ===== COORDINATORS HELPERS =====
+function filterCoordinators(type) {
+    window.coordFilterType = type;
+    renderCoordinators();
+}
+
+function showCoordDetails(coordId) {
+    if (!data.coordenadores) return;
+    const coord = data.coordenadores.alocados.find(c => c.id === coordId);
+    if (!coord) return;
+    
+    const loja = data.lojas.find(l => l.id === coord.loja_id);
+    
+    alert(`
+👔 Coordenador #${String(coord.id).padStart(3, '0')}
+
+📋 Tipo: ${coord.tipo}
+🏢 Loja: ${coord.loja_nome}
+📍 Município: ${coord.municipio}
+⏰ Turno: ${coord.turno || 'N/A'}
+👥 Vagas (PAs): ${coord.vagas_agentes} analistas
+${loja ? `\n🗺️ Zona: ${loja.zona} (${loja.un})` : ''}
+${coord.dupla_com ? `\n👥 Dupla com: Coordenador #${String(coord.dupla_com).padStart(3, '0')}` : ''}
+
+✅ Status: ${coord.status}
+    `.trim());
+}
+
+function exportCoordinators() {
+    if (!data.coordenadores) {
+        alert('Dados de coordenadores não disponíveis');
+        return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    const mapaLoja = data.coordenadores.mapa_loja || {};
+    const resumo = data.coordenadores.resumo || {};
+
+    // Sheet 1: Coordenadores por Loja
+    const porLoja = [['Loja', 'Zona', 'Município', 'Horário', 'PAs', 'Coords Exclusivos', 'Coords Compartilhados', 'Total Referências', 'Tipo', 'Compartilha com', 'IDs Coords']];
+    let totalExcl = 0, totalCompart = 0;
+    data.lojas.forEach(l => {
+        const cList = mapaLoja[l.id] || [];
+        const exclusivos = cList.filter(c => c.tipo !== 'agrupador').length;
+        const compartilhados = cList.filter(c => c.tipo === 'agrupador').length;
+        totalExcl += exclusivos;
+        totalCompart += compartilhados;
+        const tipo = exclusivos >= 2 ? 'dupla' : compartilhados > 0 ? 'agrupador' : 'individual';
+        const compart = cList.filter(c => c.tipo === 'agrupador').flatMap(c => c.compartilhado_com || []).join(', ') || '-';
+        const ids = cList.map(c => '#' + String(c.coord_id).padStart(3,'0')).join(', ') || '-';
+        porLoja.push([l.nome, l.zona, l.municipio, l.horario, l.vagas_agentes, exclusivos, compartilhados, cList.length, tipo, compart, ids]);
+    });
+    porLoja.push([]);
+    porLoja.push(['TOTAL COORDENADORES ÚNICOS:', data.coordenadores.total]);
+    porLoja.push(['Nota:', 'Coords compartilhados (agrupador) aparecem em 2 lojas mas são 1 pessoa só']);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(porLoja), 'Coords por Loja');
+
+    // Sheet 2: Lista de Coordenadores
+    const coordsData = data.coordenadores.alocados.map(c => {
+        const loja = data.lojas.find(l => l.id === c.loja_id);
+        return {
+            'ID': String(c.id).padStart(3, '0'),
+            'Tipo': c.tipo,
+            'Loja(s)': c.loja_nome,
+            'Município': c.municipio,
+            'Zona': loja ? loja.zona : '-',
+            'Horário': c.horario || '-',
+            'PAs': c.vagas_agentes,
+            'Dupla com': c.dupla_com ? '#' + String(c.dupla_com).padStart(3, '0') : '-',
+            'Dist. Grupo (km)': c.distancia_km || '-',
+        };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(coordsData), 'Coordenadores');
+
+    // Sheet 3: Grupos Agrupados
+    if (data.coordenadores.grupos_pequenas && data.coordenadores.grupos_pequenas.length > 0) {
+        const gruposData = [];
+        data.coordenadores.grupos_pequenas.forEach(g => {
+            g.lojas.forEach((l, idx) => {
+                gruposData.push({
+                    'Grupo': g.id,
+                    'Coord ID': '#' + String(g.coordenador_id).padStart(3, '0'),
+                    'Loja': l.loja_nome,
+                    'Município': l.municipio,
+                    'PAs': l.vagas_agentes,
+                    'Dist Máx (km)': idx === 0 ? g.distancia_maxima_km : '',
+                    'Tempo (min)': idx === 0 ? g.tempo_deslocamento_min : '',
+                });
+            });
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(gruposData), 'Grupos Agrupados');
+    }
+
+    // Sheet 4: Resumo
+    const resumoData = [
+        { 'Métrica': 'Total Coordenadores', 'Valor': data.coordenadores.total },
+        { 'Métrica': 'Meta', 'Valor': data.coordenadores.meta },
+        { 'Métrica': 'Status', 'Valor': data.coordenadores.status },
+        { 'Métrica': 'Lojas > 10 PAs (2 coords)', 'Valor': resumo.lojas_grandes },
+        { 'Métrica': 'Lojas ≤ 10 PAs', 'Valor': resumo.lojas_pequenas },
+        { 'Métrica': 'Grupos Formados', 'Valor': resumo.grupos_formados },
+        { 'Métrica': 'Necessidade Bruta (sem agrupamento)', 'Valor': resumo.bruto_sem_agrupamento },
+        { 'Métrica': 'Economia via Agrupamento', 'Valor': resumo.economia },
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumoData), 'Resumo');
+
+    XLSX.writeFile(wb, 'SABESP_Coordenadores_' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 </script>
 </body>

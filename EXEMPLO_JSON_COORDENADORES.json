@@ -1,0 +1,191 @@
+"""
+EXEMPLO DE ESTRUTURA JSON GERADA
+Arquivo: web/dados_alocacao.json
+"""
+
+{
+  "lojas": [
+    {
+      "id": 1,
+      "nome": "Agência Centro",
+      "un": "OC",
+      "zona": "Zona Central",
+      "municipio": "São Paulo",
+      "endereco": "Av. Paulista, 1000",
+      "horario": "Seg-Feriados 6h às 22h",
+      "vagas_agentes": 15,
+      "vagas_triagistas": 2,
+      "total_hcs": 90,
+      "status": "Ativo",
+      "lat": -23.5505,
+      "lng": -46.6333,
+      "cor_hex": "#9b59b6"
+    }
+  ],
+  
+  "funcionarios": [
+    {
+      "cadastro": "001234",
+      "nome": "João Silva",
+      "endereco": "Rua X, 100",
+      "cidade": "São Paulo",
+      "status": "Ativo",
+      "resposta_interesse": "Sim",
+      "lat": -23.5500,
+      "lng": -46.6330,
+      "lojas_proximas": [
+        {
+          "loja_id": 1,
+          "loja_nome": "Agência Centro",
+          "distancia_km": 0.5,
+          "tempo_min": 2,
+          "custo_mensal": 0.25
+        }
+      ]
+    }
+  ],
+  
+  "coordenadores": {
+    "total": 61,
+    "meta": 61,
+    "status": "completo",
+    
+    "alocados": [
+      {
+        "id": 1,
+        "nome": "Coordenador 1",
+        "tipo": "individual",
+        "loja_id": 5,
+        "loja_nome": "Agência Pequena 1",
+        "municipio": "Lapa",
+        "turno": "Manhã",
+        "vagas_agentes": 2,
+        "status": "alocado"
+      },
+      {
+        "id": 2,
+        "nome": "Coordenador 2",
+        "tipo": "dupla",
+        "loja_id": 1,
+        "loja_nome": "Agência Centro",
+        "municipio": "São Paulo",
+        "turno": "Manhã",
+        "vagas_agentes": 15,
+        "dupla_com": 3,
+        "status": "alocado"
+      },
+      {
+        "id": 3,
+        "nome": "Coordenador 3",
+        "tipo": "dupla_2",
+        "loja_id": 1,
+        "loja_nome": "Agência Centro",
+        "municipio": "São Paulo",
+        "turno": "Manhã",
+        "vagas_agentes": 15,
+        "dupla_com": 2,
+        "status": "alocado"
+      }
+      // ... 58 coordenadores mais (total 61)
+    ],
+    
+    "grupos_pequenas": [
+      {
+        "id": "GROUP_001",
+        "coordenador_id": 45,
+        "coordenador_nome": "Coord. Agrupador 1",
+        "lojas": [
+          {
+            "loja_id": 5,
+            "loja_nome": "Agência Pequena 1",
+            "vagas_agentes": 2,
+            "municipio": "Taboão da Serra",
+            "num_turnos": 1
+          },
+          {
+            "loja_id": 6,
+            "loja_nome": "Agência Pequena 2",
+            "vagas_agentes": 1,
+            "municipio": "Itapecerica da Serra",
+            "num_turnos": 1
+          },
+          {
+            "loja_id": 7,
+            "loja_nome": "Agência Pequena 3",
+            "vagas_agentes": 2,
+            "municipio": "Embu",
+            "num_turnos": 1
+          }
+        ],
+        "distancia_maxima_km": 12.5,
+        "tempo_deslocamento_min": 31.2,
+        "num_lojas": 3
+      },
+      // ... grupos adicionais
+    ],
+    
+    "resumo": {
+      "lojas_grandes": 25,        // >10 PAs
+      "lojas_pequenas": 18,       // ≤2 PAs
+      "grupos_pequenas": 6,       // Grupos formados
+      "necessidade_inicial": 85,  // Sem agrupamento
+      "alocados": 61              // Com agrupamento
+    }
+  },
+  
+  "cores_zonas": {
+    "OL": {"nome": "Zona Leste", "cor": "#e74c3c"},
+    "ON": {"nome": "Zona Norte", "cor": "#3498db"},
+    "OC": {"nome": "Zona Central", "cor": "#9b59b6"},
+    "OS": {"nome": "Zona Sul", "cor": "#27ae60"},
+    "OO": {"nome": "Zona Oeste", "cor": "#f39c12"}
+  }
+}
+
+
+/*
+ESTRUTURA DETALHADA:
+
+1. COORDENADORES.ALOCADOS[]
+   - id: número único (1-61)
+   - tipo: "individual" | "dupla" | "dupla_2"
+   - turno: "Manhã" | "Tarde" | "Noite" | "Integral"
+   
+   Tipos:
+   └─ individual: 1 coord em 1 loja (médias)
+   └─ dupla: Primeiro de uma dupla (grandes)
+   └─ dupla_2: Segundo de uma dupla (grandes)
+
+2. COORDENADORES.GRUPOS_PEQUENAS[] (se houver)
+   - Agrupa lojas com ≤2 analistas
+   - Máximo 3 lojas por grupo
+   - Limitado a 15 km entre elas
+   - Coordenador responsável por todas
+
+3. COORDENADORES.RESUMO
+   - Estatísticas gerais de alocação
+   - Comparação: necessidade_inicial vs alocados
+   - Economia: 85 - 61 = 24 coordenadores poupados
+     (graças ao agrupamento de lojas pequenas)
+
+4. CASOS DE USO:
+
+   a) Encontrar todos os coordenadores de uma loja:
+      GET /coordenadores/alocados
+      FILTER: loja_id === 5
+      
+   b) Encontrar duplas (2 coords um turno):
+      GET /coordenadores/alocados
+      FILTER: tipo.includes('dupla')
+      GROUP BY: loja_id + turno
+      
+   c) Visualizar grupo de loja pequena:
+      GET /coordenadores/grupos_pequenas
+      FIND: coordenador_id === 45
+      SHOW: todas as 3 lojas sob este coord
+      
+   d) Exportar por zona:
+      GET /lojas
+      GROUP BY: un (OL, ON, OC, OS, OO)
+      COUNT: coordenadores por zona
+*/

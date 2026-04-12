@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Coordenadores - SABESP</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #667eea;
+            --accent: #764ba2;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --bg: #f0f2f5;
+            --card: #fff;
+            --text: #1a1a2e;
+            --border: #e5e7eb;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.danger { border-left-color: var(--danger); }
+        
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        
+        .stat-subtext {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .ctrl-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .ctrl-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        input[type="search"],
+        select,
+        button {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        
+        input[type="search"],
+        select {
+            background: var(--card);
+            color: var(--text);
+            min-width: 200px;
+        }
+        
+        button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        button.secondary {
+            background: #6b7280;
+        }
+        
+        button.secondary:hover {
+            background: #4b5563;
+        }
+        
+        button.success {
+            background: var(--success);
+        }
+        
+        button.success:hover {
+            background: #1e8449;
+        }
+        
+        /* Table */
+        .table-wrapper {
+            background: var(--card);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: #f9fafb;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        th {
+            padding: 14px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            padding: 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .coord-id {
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .coord-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-individual { background: #dbeafe; color: #1e40af; }
+        .badge-dupla { background: #fed7aa; color: #92400e; }
+        .badge-agrupador { background: #d1fae5; color: #065f46; }
+        
+        .turno-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .turno-manha { background: #fef08a; color: #713f12; }
+        .turno-tarde { background: #fed7aa; color: #92400e; }
+        .turno-noite { background: #e0e7ff; color: #312e81; }
+        .turno-integral { background: #d1fae5; color: #065f46; }
+        
+        /* Sections */
+        .section {
+            background: var(--card);
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .grupo-card {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--success);
+        }
+        
+        .grupo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .grupo-titulo {
+            font-weight: 700;
+            color: var(--text);
+        }
+        
+        .grupo-lojas {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .loja-item {
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            border-left: 2px solid var(--primary);
+        }
+        
+        .loja-nome {
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .loja-meta {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            min-width: 36px;
+        }
+        
+        .pagination button.active {
+            background: var(--accent);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            table { font-size: 12px; }
+            td, th { padding: 10px; }
+        }
+        
+        @media (max-width: 640px) {
+            .container { padding: 12px; }
+            .header { padding: 20px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; }
+            .ctrl-group { flex-direction: column; }
+            input, select, button { width: 100%; }
+            table { font-size: 11px; }
+            td, th { padding: 8px; }
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+        
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📋 Gestão de Coordenadores</h1>
+            <p>Distribuição estratégica de 61 Coordenadores pelas Unidades de Negócio</p>
+        </div>
+        
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card success">
+                <div class="stat-label">✅ Total Alocado</div>
+                <div class="stat-value" id="totalAlocado">0</div>
+                <div class="stat-subtext">de 61 coordenadores</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">🏢 Lojas Grandes</div>
+                <div class="stat-value" id="lojasGrandes">0</div>
+                <div class="stat-subtext">(>10 posições)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">🤝 Grupos Pequenas</div>
+                <div class="stat-value" id="gruposPequenas">0</div>
+                <div class="stat-subtext">até 3 lojas/grupo</div>
+            </div>
+            <div class="stat-card warning" id="statusCard">
+                <div class="stat-label">⚠️ Status</div>
+                <div class="stat-value" id="statusValor">---</div>
+                <div class="stat-subtext">Ajuste necessário</div>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <div class="ctrl-group">
+                <label class="ctrl-label">Filtrar por:</label>
+                <select id="filterType" onchange="atualizarTabela()">
+                    <option value="todos">Todos os Coordenadores</option>
+                    <option value="individual">Coordenadores Individuais</option>
+                    <option value="dupla">Duplas de Coordenação</option>
+                    <option value="agrupador">Agrupadores (Lojas Pequenas)</option>
+                </select>
+            </div>
+            <div class="ctrl-group">
+                <input type="search" id="searchInput" placeholder="Buscar por loja, município..." onkeyup="atualizarTabela()">
+            </div>
+            <button class="success" onclick="exportarExcel()">📥 Exportar XLS</button>
+            <button class="secondary" onclick="carregarDados()">🔄 Atualizar</button>
+        </div>
+        
+        <!-- Coordenadores Table -->
+        <div class="section">
+            <div class="section-title">📌 Coordenadores Alocados</div>
+            <div class="table-wrapper">
+                <table id="coordTable">
+                    <thead>
+                        <tr>
+                            <th>ID Coord.</th>
+                            <th>Tipo</th>
+                            <th>Loja</th>
+                            <th>Município</th>
+                            <th>Turno</th>
+                            <th>Vagas</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coordTableBody">
+                        <tr><td colspan="7" class="no-data">Carregando dados...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+        
+        <!-- Grupos de Lojas Pequenas -->
+        <div class="section" id="gruposSection" style="display: none;">
+            <div class="section-title">🤝 Grupos de Lojas Pequenas</div>
+            <div id="gruposContainer"></div>
+        </div>
+        
+        <!-- Resumo por Zona -->
+        <div class="section">
+            <div class="section-title">🗺️ Distribuição por Zona</div>
+            <div id="zonasSummary"></div>
+        </div>
+    </div>
+    
+    <!-- Modal de Detalhes -->
+    <div class="modal" id="detailsModal">
+        <div class="modal-content">
+            <div class="modal-header">Detalhes do Coordenador</div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="secondary" onclick="fecharModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let dadosGlobal = {
+            lojas: [],
+            coordenadores: {
+                alocados: [],
+                grupos_pequenas: [],
+                resumo: {}
+            }
+        };
+        
+        let paginaAtual = 1;
+        let itemsPorPagina = 10;
+        let coordenadoresFiltered = [];
+        
+        // Carrega dados ao iniciar
+        window.addEventListener('DOMContentLoaded', carregarDados);
+        
+        async function carregarDados() {
+            try {
+                const response = await fetch('dados_alocacao.json');
+                const dados = await response.json();
+                
+                dadosGlobal = dados;
+                
+                atualizarStats();
+                atualizarTabela();
+                atualizarGrupos();
+                atualizarZonas();
+                
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('coordTableBody').innerHTML = 
+                    '<tr><td colspan="7" class="no-data">❌ Erro ao carregar dados. Verifique se o arquivo dados_alocacao.json existe.</td></tr>';
+            }
+        }
+        
+        function atualizarStats() {
+            const coords = dadosGlobal.coordenadores;
+            
+            document.getElementById('totalAlocado').textContent = coords.total || 0;
+            document.getElementById('lojasGrandes').textContent = coords.resumo.lojas_grandes || 0;
+            document.getElementById('gruposPequenas').textContent = coords.resumo.grupos_formados || coords.resumo.grupos_pequenas || 0;
+            
+            const statusTexto = coords.status === 'completo' ? '✓ Completo' : '⚠ Ajuste';
+            const statusCard = document.getElementById('statusCard');
+            document.getElementById('statusValor').textContent = statusTexto;
+            
+            if (coords.status === 'completo') {
+                statusCard.classList.remove('warning');
+                statusCard.classList.add('success');
+            }
+        }
+        
+        function atualizarTabela() {
+            const filterType = document.getElementById('filterType').value;
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            
+            let coordenadores = dadosGlobal.coordenadores.alocados || [];
+            
+            // Filtra por tipo
+            if (filterType !== 'todos') {
+                coordenadores = coordenadores.filter(c => c.tipo.includes(filterType));
+            }
+            
+            // Filtra por busca
+            if (searchText) {
+                coordenadores = coordenadores.filter(c =>
+                    c.loja_nome.toLowerCase().includes(searchText) ||
+                    c.municipio.toLowerCase().includes(searchText)
+                );
+            }
+            
+            coordenadoresFiltered = coordenadores;
+            exibirPagina(1);
+        }
+        
+        function exibirPagina(pagina) {
+            paginaAtual = pagina;
+            const inicio = (pagina - 1) * itemsPorPagina;
+            const fim = inicio + itemsPorPagina;
+            const paginated = coordenadoresFiltered.slice(inicio, fim);
+            
+            const tbody = document.getElementById('coordTableBody');
+            
+            if (paginated.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">Nenhum coordenador encontrado</td></tr>';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+            
+            tbody.innerHTML = paginated.map(c => `
+                <tr>
+                    <td><span class="coord-id">#${String(c.id).padStart(3, '0')}</span></td>
+                    <td><span class="coord-badge badge-${getTipoBadge(c.tipo)}">${c.tipo}</span></td>
+                    <td><strong>${c.loja_nome}</strong></td>
+                    <td>${c.municipio}</td>
+                    <td><span class="turno-badge turno-${getTurnoBadge(c.turno)}">${c.turno}</span></td>
+                    <td><strong>${c.vagas_agentes}</strong> PAs</td>
+                    <td><button onclick="mostrarDetalhes(${c.id})" style="padding: 4px 8px; font-size: 11px;">Ver</button></td>
+                </tr>
+            `).join('');
+            
+            // Paginação
+            const totalPaginas = Math.ceil(coordenadoresFiltered.length / itemsPorPagina);
+            const paginationHTML = [];
+            
+            for (let i = 1; i <= totalPaginas; i++) {
+                paginationHTML.push(`
+                    <button onclick="exibirPagina(${i})" ${i === pagina ? 'class="active"' : ''}>
+                        ${i}
+                    </button>
+                `);
+            }
+            
+            document.getElementById('pagination').innerHTML = paginationHTML.join('');
+        }
+        
+        function getTipoBadge(tipo) {
+            if (tipo.includes('dupla')) return 'dupla';
+            if (tipo.includes('agrupador')) return 'agrupador';
+            return 'individual';
+        }
+        
+        function getTurnoBadge(turno) {
+            const t = (turno || '').toLowerCase();
+            if (t.includes('manhã') || t.includes('manha')) return 'manha';
+            if (t.includes('tarde')) return 'tarde';
+            if (t.includes('noite')) return 'noite';
+            return 'integral';
+        }
+        
+        function atualizarGrupos() {
+            const grupos = dadosGlobal.coordenadores.grupos_pequenas || [];
+            
+            if (grupos.length === 0) {
+                document.getElementById('gruposSection').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('gruposSection').style.display = 'block';
+            
+            const container = document.getElementById('gruposContainer');
+            container.innerHTML = grupos.map(g => `
+                <div class="grupo-card">
+                    <div class="grupo-header">
+                        <div class="grupo-titulo">
+                            Coordenador #${String(g.coordenador_id).padStart(3, '0')} - ${g.num_lojas} loja(s)
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280;">
+                            Máx: ${g.distancia_maxima_km}km / ${Math.round(g.tempo_deslocamento_min)}min
+                        </div>
+                    </div>
+                    <div class="grupo-lojas">
+                        ${g.lojas.map(l => `
+                            <div class="loja-item">
+                                <div class="loja-nome">📍 ${l.loja_nome}</div>
+                                <div class="loja-meta">${l.municipio} • ${l.vagas_agentes} analistas • ${l.num_turnos} turno(s)</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function atualizarZonas() {
+            const coordenadores = dadosGlobal.coordenadores.alocados || [];
+            const lojas = dadosGlobal.lojas || [];
+            
+            const zonas = {};
+            
+            coordenadores.forEach(c => {
+                const loja = lojas.find(l => l.id === c.loja_id);
+                if (loja) {
+                    if (!zonas[loja.un]) {
+                        zonas[loja.un] = {
+                            nome: loja.zona,
+                            total: 0,
+                            lojas: new Set()
+                        };
+                    }
+                    zonas[loja.un].total++;
+                    zonas[loja.un].lojas.add(c.loja_id);
+                }
+            });
+            
+            const html = Object.entries(zonas).map(([un, data]) => `
+                <div style="margin-bottom: 12px; padding: 12px; background: #f9fafb; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <strong>${data.nome}</strong>: ${data.total} coordenadores • ${data.lojas.size} loja(s)
+                </div>
+            `).join('');
+            
+            document.getElementById('zonasSummary').innerHTML = html || '<div class="no-data">Sem dados</div>';
+        }
+        
+        function mostrarDetalhes(coordId) {
+            const coord = dadosGlobal.coordenadores.alocados.find(c => c.id === coordId);
+            if (!coord) return;
+            
+            const html = `
+                <div style="display: grid; gap: 12px;">
+                    <div>
+                        <strong>ID:</strong> #${String(coord.id).padStart(3, '0')}
+                    </div>
+                    <div>
+                        <strong>Tipo:</strong> ${coord.tipo}
+                    </div>
+                    <div>
+                        <strong>Loja:</strong> ${coord.loja_nome}
+                    </div>
+                    <div>
+                        <strong>Município:</strong> ${coord.municipio}
+                    </div>
+                    <div>
+                        <strong>Turno:</strong> ${coord.turno}
+                    </div>
+                    <div>
+                        <strong>Vagas de Atendimento:</strong> ${coord.vagas_agentes} Analistas
+                    </div>
+                    <div>
+                        <strong>Status:</strong> ${coord.status}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('detailsModal').classList.add('active');
+        }
+        
+        function fecharModal() {
+            document.getElementById('detailsModal').classList.remove('active');
+        }
+        
+        function exportarExcel() {
+            const dados = coordenadoresFiltered.map((c, idx) => ({
+                'ID': String(c.id).padStart(3, '0'),
+                'Tipo': c.tipo,
+                'Loja': c.loja_nome,
+                'Município': c.municipio,
+                'Turno': c.turno,
+                'Vagas': c.vagas_agentes,
+                'Status': c.status
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(dados);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Coordenadores");
+            
+            XLSX.writeFile(wb, `Alocacao_Coordenadores_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+        
+        // Fecha modal ao clicar fora
+        document.getElementById('detailsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailsModal') fecharModal();
+        });
+    </script>
+</body>
+</html>
