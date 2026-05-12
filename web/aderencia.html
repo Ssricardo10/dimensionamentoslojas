@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aderência Migração – SABESP</title>
+  <style>
+    /* ─── Reset & Tokens ─────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg:       #f0f2f5;
+      --card:     #ffffff;
+      --border:   #e5e7eb;
+      --text:     #1a1a2e;
+      --muted:    #6b7280;
+      --primary:  #667eea;
+      --accent:   #764ba2;
+      --success:  #10b981;
+      --warn:     #f59e0b;
+      --danger:   #ef4444;
+      --grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --r:        12px;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    .header {
+      background: var(--grad);
+      color: #fff;
+      padding: 18px 16px 14px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(102,126,234,.35);
+    }
+    .header-inner { max-width: 800px; margin: 0 auto; }
+    .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .header h1 { font-size: 18px; font-weight: 800; line-height: 1.2; }
+    .header p { font-size: 12px; opacity: .82; margin-top: 3px; }
+    .badge-live {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
+      border-radius: 99px; padding: 4px 10px; font-size: 11px; font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-live::before { content:''; width:7px; height:7px; border-radius:50%; background:#4ade80; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .nav { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+    .nav a {
+      color: #fff; text-decoration: none;
+      border: 1px solid rgba(255,255,255,.28);
+      background: rgba(255,255,255,.14);
+      padding: 6px 12px; border-radius: 99px;
+      font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      transition: all .2s;
+    }
+    .nav a:hover { background: rgba(255,255,255,.24); }
+    .nav a.active { background: #fff; color: var(--primary); }
+
+    /* ─── Page ───────────────────────────────────────────────── */
+    .page { max-width: 800px; margin: 0 auto; padding: 16px 12px 40px; }
+
+    /* ─── Loading ────────────────────────────────────────────── */
+    #loading {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 20px; gap: 16px; color: var(--muted);
+    }
+    .spinner {
+      width: 40px; height: 40px; border: 4px solid #e5e7eb;
+      border-top-color: var(--primary); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Cards ──────────────────────────────────────────────── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 16px; margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+    }
+    .card-title .tag {
+      font-size: 10px; font-weight: 600; background: #eff6ff; color: var(--primary);
+      border-radius: 4px; padding: 2px 6px; margin-left: auto;
+    }
+
+    /* ─── Summary KPIs ───────────────────────────────────────── */
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+      margin-bottom: 12px;
+    }
+    @media (min-width: 480px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+    .kpi {
+      background: #f9fafb; border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 10px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .kpi::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 3px; background: var(--grad);
+    }
+    .kpi-val { font-size: 28px; font-weight: 900; color: var(--primary); line-height: 1; }
+    .kpi-label { font-size: 10.5px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+    .kpi-sub { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+    .kpi.green .kpi-val { color: var(--success); }
+    .kpi.green::after { background: var(--success); }
+    .kpi.orange .kpi-val { color: var(--warn); }
+    .kpi.orange::after { background: var(--warn); }
+    .kpi.red .kpi-val { color: var(--danger); }
+    .kpi.red::after { background: var(--danger); }
+
+    /* ─── Global progress ring ───────────────────────────────── */
+    .ring-wrap {
+      display: flex; align-items: center; gap: 16px;
+      background: linear-gradient(135deg,#eff6ff,#f5f3ff);
+      border: 1px solid #c7d2fe; border-radius: var(--r); padding: 16px;
+      margin-bottom: 12px;
+    }
+    .ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: #e5e7eb; stroke-width: 10; }
+    .ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+    .ring-label {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+    }
+    .ring-pct { font-size: 17px; font-weight: 900; color: var(--primary); }
+    .ring-sub { font-size: 9px; color: var(--muted); }
+    .ring-info h3 { font-size: 15px; font-weight: 800; color: var(--text); }
+    .ring-info p { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+    /* ─── Podium (top 3) ─────────────────────────────────────── */
+    .podium { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 14px; justify-content: center; }
+    .podium-item {
+      flex: 1; max-width: 160px; text-align: center;
+      background: #f9fafb; border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 6px 8px; position: relative;
+    }
+    .podium-item.gold { background: linear-gradient(160deg,#fffbeb,#fef3c7); border-color: #fcd34d; }
+    .podium-item.silver { background: linear-gradient(160deg,#f8fafc,#f1f5f9); border-color: #cbd5e1; }
+    .podium-item.bronze { background: linear-gradient(160deg,#fff7ed,#ffedd5); border-color: #fdba74; }
+    .podium-medal { font-size: 20px; display: block; margin-bottom: 4px; }
+    .podium-pct { font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
+    .podium-name { font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 600; line-height: 1.3; }
+    .podium-detail { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+
+    /* ─── Alert lojas ─────────────────────────────────────────── */
+    .alert-list { display: flex; flex-direction: column; gap: 8px; }
+    .alert-row {
+      display: flex; align-items: center; gap: 10px;
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px;
+    }
+    .alert-row .icon { font-size: 18px; flex-shrink: 0; }
+    .alert-row .info { flex: 1; }
+    .alert-row .info strong { font-size: 12px; font-weight: 700; display: block; }
+    .alert-row .info span { font-size: 11px; color: var(--danger); }
+    .alert-row .pct-badge {
+      font-size: 13px; font-weight: 800; color: var(--danger);
+      background: #fee2e2; border-radius: 6px; padding: 4px 8px;
+    }
+
+    /* ─── Store list ─────────────────────────────────────────── */
+    .store-filters {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .filter-btn {
+      padding: 5px 12px; border: 1px solid var(--border); border-radius: 99px;
+      background: var(--card); font-size: 11px; font-weight: 600; cursor: pointer;
+      color: var(--muted); transition: all .15s;
+    }
+    .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .search-box {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; margin-bottom: 10px;
+      outline: none; transition: border-color .15s;
+    }
+    .search-box:focus { border-color: var(--primary); }
+
+    .page-actions {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .action-btn {
+      appearance: none; border: none; cursor: pointer;
+      background: var(--grad); color: #fff; border-radius: 10px;
+      padding: 12px 14px; font-size: 12px; font-weight: 800;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 6px 18px rgba(102,126,234,.18);
+      flex: 1 1 220px;
+    }
+    .action-btn:hover { filter: brightness(1.03); }
+    .action-btn.secondary {
+      background: #fff; color: var(--text); border: 1px solid var(--border); box-shadow: none;
+    }
+
+    .store-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px; margin-bottom: 8px;
+      transition: all .15s;
+      cursor: pointer;
+    }
+    .store-item:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); border-color: var(--primary); }
+
+    /* ─── Modal ──────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 1000; animation: fadeIn .15s; padding: 12px;
+    }
+    .modal-overlay.active { display: flex; align-items: flex-end; justify-content: center; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-content {
+      background: var(--card); border-radius: var(--r); width: min(100%, 720px);
+      max-height: min(88vh, 900px); overflow: hidden; display: flex; flex-direction: column;
+      animation: slideUp .2s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header {
+      background: var(--grad); color: #fff; padding: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-radius: var(--r) var(--r) 0 0; flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 800; }
+    .modal-subtitle { font-size: 11px; opacity: .82; margin-top: 4px; }
+    .modal-close {
+      background: none; border: none; color: #fff; font-size: 20px;
+      cursor: pointer; padding: 0; width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-body { padding: 16px; flex: 1; overflow-y: auto; background: #fcfcff; }
+    .modal-body-empty { text-align: center; color: var(--muted); padding: 24px; }
+    .modal-summary {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px;
+    }
+    .modal-stat {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 10px;
+    }
+    .modal-stat strong { display: block; font-size: 18px; font-weight: 900; color: var(--text); }
+    .modal-stat span { display: block; margin-top: 3px; font-size: 10px; color: var(--muted); }
+    .modal-tools { display: grid; gap: 8px; margin-bottom: 12px; }
+    .modal-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .modal-filter-btn {
+      padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
+      background: #fff; color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .modal-filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .modal-search {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #fff; font-size: 13px; outline: none;
+    }
+    .modal-search:focus { border-color: var(--primary); }
+    .resposta-list { display: flex; flex-direction: column; gap: 8px; }
+    .resposta-item {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+      display: grid; gap: 8px;
+    }
+    .resposta-item.base-nominal { border-color: #c7d2fe; background: linear-gradient(180deg,#ffffff,#f8faff); }
+    .resposta-item.ativo-hoje { border-left: 4px solid #10b981; }
+    .resposta-top {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+    }
+    .resposta-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .resposta-cargo { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .resposta-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .resp-tag {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px;
+      border-radius: 999px; font-size: 10px; font-weight: 800;
+      border: 1px solid transparent;
+    }
+    .resp-tag.sim { background: #d1fae5; color: #065f46; }
+    .resp-tag.nao { background: #fee2e2; color: #991b1b; }
+    .resp-tag.base { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+    .resp-tag.ativo { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+    .resp-tag.loja { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+    .resposta-meta { font-size: 10px; color: #94a3b8; }
+    .store-item.hidden { display: none; }
+
+    .store-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .store-emoji { font-size: 18px; flex-shrink: 0; }
+    .store-name { flex: 1; font-size: 13px; font-weight: 700; color: var(--text); }
+    .store-status {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px;
+    }
+    .status-otimo  { background: #d1fae5; color: #065f46; }
+    .status-bom    { background: #dbeafe; color: #1e40af; }
+    .status-medio  { background: #fef3c7; color: #92400e; }
+    .status-baixo  { background: #fee2e2; color: #991b1b; }
+    .status-zero   { background: #f1f5f9; color: #475569; }
+    .status-critico{ background: #fce7f3; color: #9d174d; }
+
+    .store-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+    .sm { background: #f9fafb; border-radius: 7px; padding: 8px 6px; text-align: center; }
+    .sm-val { font-size: 18px; font-weight: 800; color: var(--text); }
+    .sm-label { font-size: 9.5px; color: var(--muted); margin-top: 1px; }
+
+    /* Progress bar */
+    .prog-wrap { margin-top: 10px; }
+    .prog-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+    .prog-track { background: #e5e7eb; border-radius: 99px; height: 8px; overflow: hidden; position: relative; }
+    .prog-fill {
+      height: 100%; border-radius: 99px;
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* Cargo pills */
+    .cargo-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+    .cargo-pill {
+      font-size: 10px; padding: 2px 8px; border-radius: 99px;
+      background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
+      font-weight: 600;
+    }
+    .cargo-pill.triag { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .cargo-pill.sup   { background: #fdf4ff; color: #7e22ce; border-color: #e9d5ff; }
+
+    /* ─── Floating update time ───────────────────────────────── */
+    .update-tag {
+      text-align: center; font-size: 11px; color: var(--muted); margin-bottom: 14px;
+    }
+
+    /* ─── Sem dados ──────────────────────────────────────────── */
+    .empty-state { text-align: center; padding: 30px; color: var(--muted); font-size: 13px; }
+
+    @media (min-width: 640px) {
+      .modal-overlay.active { align-items: center; }
+    }
+    @media (max-width: 560px) {
+      .modal-summary { grid-template-columns: 1fr; }
+      .store-metrics { grid-template-columns: repeat(2,1fr); }
+      .prog-labels { flex-direction: column; gap: 3px; }
+      .resposta-top { flex-direction: column; }
+      .action-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div>
+        <h1>📋 Aderência Migração</h1>
+        <p>Visão gerencial por loja · SABESP Trade</p>
+      </div>
+      <div class="badge-live">Ao vivo</div>
+    </div>
+    <nav class="nav">
+      <a href="index.html">🗺️ Mapa</a>
+      <a href="guia.html">📖 Guia</a>
+      <a href="coordenadores.html">👔 Coordenadores</a>
+      <a href="aderencia.html" class="active">📋 Aderência</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══ PAGE ══════════════════════════════════════════════════════ -->
+<main class="page" id="app">
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Carregando dados do Google Sheets…</p>
+  </div>
+  <div id="content" style="display:none"></div>
+</main>
+
+<!-- ═══ MODAL ═════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target.id === 'modalOverlay') closeModal()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div>
+        <h2 id="modalTitle">Respostas da Loja</h2>
+        <div class="modal-subtitle" id="modalSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Preenchido dinamicamente -->
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// ─── Store global data ──────────────────────────────────────────────
+window.lojaData = {};
+window.dashboardRows = [];
+window.dashboardUpdatedAt = '';
+window.modalState = { lojaKeyNorm: '', filter: 'all', search: '', rawSearch: '' };
+window.ativosPorLoja = {};      // { "loja normalizada": count }
+window.contratadosPorLoja = {}; // { "Loja Nome": count }
+window.cpfLojaMap = {};         // { "cpf": "Loja Nome" }
+window.cpfStatusMap = {};       // { "cpf": { loja, ativo } }
+
+// ─── Constantes ────────────────────────────────────────────────────
+const SHEET_ID  = '1QcJ6bKIL8DLMaIyy8B3prTXRvtt4PvGouVLDIptZeV4';
+const GID       = '466808166';
+const GVIZ_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+
+// Lojas do sistema (orçamento)
+const LOJAS_SISTEMA = [
+  { nome:"Jardins",                         ag:7,  tr:1, tot:8,  status:"normal"  },
+  { nome:"Ipiranga",                        ag:13, tr:2, tot:15, status:"critico" },
+  { nome:"São Mateus",                      ag:23, tr:5, tot:28, status:"critico" },
+  { nome:"Mooca",                           ag:13, tr:3, tot:16, status:"critico" },
+  { nome:"Santo André",                     ag:6,  tr:2, tot:8,  status:"critico" },
+  { nome:"Descomplica Mooca",               ag:5,  tr:1, tot:6,  status:"normal"  },
+  { nome:"Pinheiros - SEDE (Backoffice)",   ag:0,  tr:0, tot:0,  status:"normal"  },
+  { nome:"Arujá",                           ag:5,  tr:1, tot:6,  status:"normal"  },
+  { nome:"Biritiba-Mirim",                  ag:3,  tr:1, tot:4,  status:"normal"  },
+  { nome:"Ferraz de Vasconcelos",           ag:6,  tr:2, tot:8,  status:"critico" },
+  { nome:"Itaquaquecetuba",                 ag:10, tr:1, tot:11, status:"critico" },
+  { nome:"Poá",                             ag:5,  tr:1, tot:6,  status:"normal"  },
+  { nome:"Salesópolis",                     ag:2,  tr:1, tot:3,  status:"normal"  },
+  { nome:"Itaim Paulista",                  ag:16, tr:3, tot:19, status:"critico" },
+  { nome:"Descomplica São Miguel Paulista", ag:11, tr:1, tot:12, status:"normal"  },
+  { nome:"Descomplica Penha",               ag:11, tr:1, tot:12, status:"normal"  },
+  { nome:"Descomplica Cidade Tiradentes",   ag:5,  tr:1, tot:6,  status:"normal"  },
+  { nome:"Santa Isabel",                    ag:4,  tr:1, tot:5,  status:"normal"  },
+  { nome:"Guararema",                       ag:2,  tr:1, tot:3,  status:"normal"  },
+  { nome:"Penha",                           ag:6,  tr:1, tot:7,  status:"normal"  },
+  { nome:"Arthur Alvim",                    ag:7,  tr:1, tot:8,  status:"critico" },
+  { nome:"Vila Galvão",                     ag:12, tr:1, tot:13, status:"critico" },
+  { nome:"Freguesia do Ó",                  ag:12, tr:4, tot:16, status:"critico" },
+  { nome:"Pirituba",                        ag:13, tr:4, tot:17, status:"critico" },
+  { nome:"Francisco Morato",               ag:9,  tr:2, tot:11, status:"normal"  },
+  { nome:"Franco da Rocha",                ag:8,  tr:1, tot:9,  status:"normal"  },
+  { nome:"Santana",                         ag:18, tr:4, tot:22, status:"critico" },
+  { nome:"Cajamar",                         ag:5,  tr:1, tot:6,  status:"normal"  },
+  { nome:"Mairiporã",                       ag:4,  tr:1, tot:5,  status:"normal"  },
+  { nome:"Cidade Martins",                  ag:8,  tr:1, tot:9,  status:"normal"  },
+  { nome:"CIC Guarulhos",                   ag:8,  tr:1, tot:9,  status:"normal"  },
+  { nome:"Caieiras",                        ag:8,  tr:1, tot:9,  status:"normal"  },
+  { nome:"Guarulhos - Câmara Municipal",   ag:2,  tr:1, tot:3,  status:"normal"  },
+  { nome:"Vargem Grande Paulista",          ag:7,  tr:1, tot:8,  status:"normal"  },
+  { nome:"Jandira",                         ag:6,  tr:1, tot:7,  status:"normal"  },
+  { nome:"Pirapora do Bom Jesus",           ag:3,  tr:1, tot:4,  status:"normal"  },
+  { nome:"Santana do Parnaíba",             ag:8,  tr:1, tot:9,  status:"normal"  },
+  { nome:"Ganha Tempo Barueri",             ag:11, tr:1, tot:12, status:"critico" },
+  { nome:"Descomplica Butantã",             ag:11, tr:1, tot:12, status:"normal"  },
+  { nome:"Descomplica Campo Limpo",         ag:4,  tr:1, tot:5,  status:"normal"  },
+  { nome:"Resolve Fácil Itapevi",           ag:10, tr:1, tot:11, status:"normal"  },
+  { nome:"Polo Taboão da Serra",            ag:3,  tr:1, tot:4,  status:"normal"  },
+  { nome:"Embu das Artes",                  ag:12, tr:2, tot:14, status:"critico" },
+  { nome:"Itapecerica da Serra",            ag:6,  tr:3, tot:9,  status:"critico" },
+  { nome:"M' Boi Mirim",                    ag:16, tr:4, tot:20, status:"critico" },
+  { nome:"Ribeirão Pires",                  ag:5,  tr:1, tot:6,  status:"normal"  },
+  { nome:"Rio Grande da Serra",             ag:6,  tr:1, tot:7,  status:"normal"  },
+  { nome:"Embu-Guaçu",                      ag:5,  tr:1, tot:6,  status:"normal"  },
+  { nome:"Chacara Santo Antonio",           ag:11, tr:1, tot:12, status:"critico" },
+  { nome:"Descomplica Capela do Socorro",   ag:8,  tr:2, tot:10, status:"critico" },
+  { nome:"Juquitiba",                       ag:2,  tr:1, tot:3,  status:"normal"  },
+  { nome:"São Lorenço da Serra",            ag:2,  tr:1, tot:3,  status:"normal"  },
+  { nome:"Descomplica Parelheiros",         ag:6,  tr:1, tot:7,  status:"normal"  },
+  { nome:"Casa Verde",                      ag:8,  tr:3, tot:11, status:"normal"  },
+  { nome:"Cotia",                           ag:7,  tr:3, tot:10, status:"normal"  },
+  { nome:"São Bernardo Do Campo",           ag:15, tr:5, tot:20, status:"normal"  },
+];
+
+// Normaliza nome para match fuzzy
+function norm(s) {
+  return String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+// Match loja do form → loja do sistema
+function matchLoja(formNome) {
+  const fn = norm(formNome);
+  // Exato
+  let found = LOJAS_SISTEMA.find(l => norm(l.nome) === fn);
+  if (found) return found;
+  // Parcial: form contém nome da loja ou vice-versa
+  found = LOJAS_SISTEMA.find(l => {
+    const ln = norm(l.nome);
+    return fn.includes(ln) || ln.includes(fn);
+  });
+  if (found) return found;
+  // Primeira palavra match
+  found = LOJAS_SISTEMA.find(l => {
+    const lw = norm(l.nome).split(' ')[0];
+    return fn.startsWith(lw) || norm(fn).startsWith(lw);
+  });
+  return found || null;
+}
+
+// Cor do progresso
+function progColor(pct) {
+  if (pct >= 80) return '#10b981';
+  if (pct >= 50) return '#667eea';
+  if (pct >= 25) return '#f59e0b';
+  return '#ef4444';
+}
+function statusLabel(pct) {
+  if (pct === 0)  return ['status-zero',   '⬜ Sem resposta'];
+  if (pct >= 80)  return ['status-otimo',  '🟢 Ótimo'];
+  if (pct >= 50)  return ['status-bom',    '🔵 Bom'];
+  if (pct >= 25)  return ['status-medio',  '🟡 Médio'];
+  return               ['status-baixo',  '🔴 Baixo'];
+}
+
+// ─── Carrega dados de contratados ────────────────────────────────
+async function loadContratados() {
+  try {
+    // Tenta carregar de output/ (para testes locais)
+    const respAtivos = await fetch('../output/ativos_por_loja.json');
+    const respLoja = await fetch('../output/contratados_por_loja.json');
+    const respCpf = await fetch('../output/cpf_loja_map.json');
+    const respCpfStatus = await fetch('../output/cpf_status_map.json');
+    
+    if (respAtivos.ok && respLoja.ok && respCpf.ok) {
+      const ativosRaw = await respAtivos.json();
+      const contratadosRaw = await respLoja.json();
+      const cpfLojaRaw = await respCpf.json();
+      const cpfStatusRaw = respCpfStatus.ok ? await respCpfStatus.json() : {};
+
+      window.ativosPorLoja = Object.entries(ativosRaw).reduce((acc, [loja, total]) => {
+        const key = norm(loja);
+        if (!key) return acc;
+        acc[key] = (acc[key] || 0) + Number(total || 0);
+        return acc;
+      }, {});
+
+      window.contratadosPorLoja = Object.entries(contratadosRaw).reduce((acc, [loja, total]) => {
+        const key = norm(loja);
+        if (!key) return acc;
+        acc[key] = (acc[key] || 0) + Number(total || 0);
+        return acc;
+      }, {});
+
+      window.cpfLojaMap = Object.entries(cpfLojaRaw).reduce((acc, [cpf, loja]) => {
+        const cpfKey = String(cpf || '').replace(/\D/g, '');
+        const lojaLimpa = String(loja || '').replace(/\s+/g, ' ').trim();
+        if (cpfKey && lojaLimpa) acc[cpfKey] = lojaLimpa;
+        return acc;
+      }, {});
+
+      window.cpfStatusMap = Object.entries(cpfStatusRaw).reduce((acc, [cpf, info]) => {
+        const cpfKey = String(cpf || '').replace(/\D/g, '');
+        const lojaLimpa = String(info?.loja || '').replace(/\s+/g, ' ').trim();
+        if (cpfKey && lojaLimpa) {
+          acc[cpfKey] = { loja: lojaLimpa, ativo: Boolean(info?.ativo) };
+        }
+        return acc;
+      }, {});
+
+      console.log('✓ Dados de contratados carregados:', Object.keys(window.contratadosPorLoja).length, 'lojas');
+    } else {
+      console.warn('Não foi possível carregar dados de contratados (saída não crítica)');
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar contratados:', err.message);
+  }
+}
+
+// ─── Modal functions ────────────────────────────────────────────────
+function getCpfStatus(cpf) {
+  const key = String(cpf || '').replace(/\D/g, '');
+  if (window.cpfStatusMap[key]) return window.cpfStatusMap[key];
+  if (window.cpfLojaMap[key]) return { loja: window.cpfLojaMap[key], ativo: false };
+  return null;
+}
+
+function openModal(lojaKeyNorm) {
+  window.modalState = { lojaKeyNorm, filter: 'all', search: '', rawSearch: '' };
+  renderModal();
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function setModalFilter(filter) {
+  window.modalState.filter = filter;
+  renderModal();
+}
+
+function updateModalSearch(value) {
+  window.modalState.rawSearch = value;
+  window.modalState.search = norm(value);
+  renderModal();
+}
+
+function renderModal() {
+  const { lojaKeyNorm, filter, search, rawSearch } = window.modalState;
+  const data = window.lojaData[lojaKeyNorm];
+  if (!data) return;
+
+  document.getElementById('modalTitle').textContent = data.lojaName;
+  document.getElementById('modalSubtitle').textContent =
+    `${data.ativos} ativos hoje · ${data.contratados}/${data.tot} na base nominal · ${data.sim} interessados`;
+
+  const respostas = data.respostas || [];
+  const totalBase = respostas.filter(r => getCpfStatus(r.cpf)).length;
+  const totalAtivos = respostas.filter(r => getCpfStatus(r.cpf)?.ativo).length;
+
+  const filtered = respostas.filter(r => {
+    const status = getCpfStatus(r.cpf);
+    const matchSearch = !search || norm(`${r.nome} ${r.cargo} ${status?.loja || ''}`).includes(search);
+    if (!matchSearch) return false;
+    if (filter === 'sim') return r.inter === 'Sim';
+    if (filter === 'nao') return r.inter !== 'Sim';
+    if (filter === 'ativos') return Boolean(status?.ativo);
+    if (filter === 'base') return Boolean(status);
+    return true;
+  });
+
+  const body = document.getElementById('modalBody');
+  if (!respostas.length) {
+    body.innerHTML = '<div class="modal-body-empty">Nenhuma resposta de Analistas ou Triagistas</div>';
+    return;
+  }
+
+  const listHtml = filtered.length ? filtered.map(r => {
+    const status = getCpfStatus(r.cpf);
+    const baseClass = status ? ' base-nominal' : '';
+    const ativoClass = status?.ativo ? ' ativo-hoje' : '';
+    const interesseClass = r.inter === 'Sim' ? 'sim' : 'nao';
+    const interesseLabel = r.inter === 'Sim' ? 'Interessado' : 'Não interessado';
+    const cpfFinal = r.cpf ? String(r.cpf).slice(-4) : '----';
+
+    return `
+      <div class="resposta-item${baseClass}${ativoClass}">
+        <div class="resposta-top">
+          <div>
+            <div class="resposta-name">${r.nome}</div>
+            <div class="resposta-cargo">${r.cargo || 'Cargo não informado'}</div>
+          </div>
+          <span class="resp-tag ${interesseClass}">${interesseLabel}</span>
+        </div>
+        <div class="resposta-tags">
+          ${status ? `<span class="resp-tag base">Base nominal</span>` : `<span class="resp-tag loja">Fora da base nominal</span>`}
+          ${status?.ativo ? `<span class="resp-tag ativo">Ativo hoje</span>` : ''}
+          ${status?.loja ? `<span class="resp-tag loja">${status.loja}</span>` : ''}
+        </div>
+        <div class="resposta-meta">CPF final ${cpfFinal}</div>
+      </div>`;
+  }).join('') : '<div class="modal-body-empty">Nenhum registro encontrado com esse filtro.</div>';
+
+  body.innerHTML = `
+    <div class="modal-summary">
+      <div class="modal-stat"><strong>${respostas.length}</strong><span>respostas contáveis</span></div>
+      <div class="modal-stat"><strong>${data.sim}</strong><span>interessados</span></div>
+      <div class="modal-stat"><strong>${totalBase}</strong><span>na base nominal</span></div>
+      <div class="modal-stat"><strong>${totalAtivos}</strong><span>ativos hoje</span></div>
+    </div>
+    <div class="modal-tools">
+      <div class="modal-filters">
+        <button class="modal-filter-btn ${filter === 'all' ? 'active' : ''}" onclick="setModalFilter('all')">Todas</button>
+        <button class="modal-filter-btn ${filter === 'sim' ? 'active' : ''}" onclick="setModalFilter('sim')">Interessados</button>
+        <button class="modal-filter-btn ${filter === 'nao' ? 'active' : ''}" onclick="setModalFilter('nao')">Não</button>
+        <button class="modal-filter-btn ${filter === 'ativos' ? 'active' : ''}" onclick="setModalFilter('ativos')">Ativos hoje</button>
+        <button class="modal-filter-btn ${filter === 'base' ? 'active' : ''}" onclick="setModalFilter('base')">Base nominal</button>
+      </div>
+      <input class="modal-search" type="text" placeholder="Buscar por nome, cargo ou loja da base..." value="${rawSearch ? rawSearch : ''}" oninput="updateModalSearch(this.value)">
+    </div>
+    <div class="resposta-list">${listHtml}</div>
+  `;
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function buildResumoRows() {
+  return window.dashboardRows.map(r => {
+    const key = norm(r.sistema.nome);
+    return {
+      Loja: r.sistema.nome,
+      Status: statusLabel(r.pctSim)[1],
+      Ativos: window.ativosPorLoja[key] || 0,
+      Contratados: window.contratadosPorLoja[key] || 0,
+      Orcado: r.tot,
+      Interessados: r.sim,
+      Respostas_contaveis: r.resp,
+      Respostas_totais: r.respTotal,
+      Aderencia_pct: r.pctSim,
+      Cobertura_respostas_pct: r.pctResp,
+    };
+  });
+}
+
+function buildRespostasRows() {
+  return window.dashboardRows.flatMap(r => r.respostasContaveis.map(resp => {
+    const status = getCpfStatus(resp.cpf);
+    return {
+      Loja_dashboard: r.sistema.nome,
+      Nome: resp.nome,
+      CPF: resp.cpf,
+      Cargo: resp.cargo,
+      Interesse: resp.inter,
+      Na_base_nominal: status ? 'Sim' : 'Nao',
+      Ativo_hoje: status?.ativo ? 'Sim' : 'Nao',
+      Loja_base_nominal: status?.loja || '',
+    };
+  }));
+}
+
+function buildExcluidasRows() {
+  return window.dashboardRows.flatMap(r => r.respostasTotal
+    .filter(resp => !isCargoContavel(resp.cargo))
+    .map(resp => ({
+      Loja_dashboard: r.sistema.nome,
+      Nome: resp.nome,
+      CPF: resp.cpf,
+      Cargo: resp.cargo,
+      Interesse: resp.inter,
+      Motivo: 'Cargo fora do escopo da aderência',
+    })));
+}
+
+function exportAllData() {
+  if (!window.XLSX) {
+    alert('Biblioteca de exportação não carregada. Recarregue a página e tente novamente.');
+    return;
+  }
+  if (!window.dashboardRows.length) {
+    alert('Os dados ainda não foram carregados.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+  const indicadores = [{
+    Atualizado_em: window.dashboardUpdatedAt,
+    Lojas_no_sistema: window.dashboardRows.length,
+    Vagas_orcadas: window.dashboardRows.reduce((acc, r) => acc + r.tot, 0),
+    Respostas_contaveis: window.dashboardRows.reduce((acc, r) => acc + r.resp, 0),
+    Interessados: window.dashboardRows.reduce((acc, r) => acc + r.sim, 0),
+  }];
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(indicadores), 'Indicadores');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(buildResumoRows()), 'Resumo Lojas');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(buildRespostasRows()), 'Respostas');
+
+  const excluidas = buildExcluidasRows();
+  if (excluidas.length) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(excluidas), 'Fora Escopo');
+  }
+
+  const fileDate = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `aderencia_migracao_sabesp_${fileDate}.xlsx`);
+}
+
+// ─── Fetch & Parse ──────────────────────────────────────────────────
+async function loadSheet() {
+  const resp = await fetch(GVIZ_URL + '&_=' + Date.now());
+  const text = await resp.text();
+  const start = text.indexOf('{'), end = text.lastIndexOf('}') + 1;
+  const j = JSON.parse(text.slice(start, end));
+
+  const cols = j.table.cols.map(c => c.label);
+  const iTs   = cols.indexOf('Carimbo de data/hora');
+  const iCpf  = cols.indexOf('CPF');
+  const iNome = cols.indexOf('Nome Completo');
+  const iInt  = cols.indexOf('Você tem interesse em realizar a migração para a Almaviva?');
+  const iCargo= cols.indexOf('Qual sua função (cargo) na loja atualmente?');
+  const iLoja = cols.indexOf('Qual loja você atua atualmente?');
+
+  const raw = j.table.rows.map(r => {
+    const c = i => (r.c && r.c[i] && r.c[i].v != null) ? r.c[i].v : '';
+    // Timestamp: vem como "Date(2026,4,8,...)" → parse
+    let ts = 0;
+    const tv = c(iTs);
+    if (typeof tv === 'string' && tv.startsWith('Date(')) {
+      const parts = tv.slice(5,-1).split(',').map(Number);
+      ts = new Date(parts[0], parts[1], parts[2], parts[3]||0, parts[4]||0, parts[5]||0).getTime();
+    } else if (typeof tv === 'number') {
+      ts = tv;
+    }
+    return {
+      ts,
+      cpf:   String(c(iCpf)).replace(/\D/g,''),
+      nome:  String(c(iNome)).trim(),
+      inter: String(c(iInt)).trim(),
+      cargo: String(c(iCargo)).trim(),
+      loja:  String(c(iLoja)).trim(),
+    };
+  }).filter(r => r.loja && r.loja !== '');
+
+  // Deduplica por CPF → mantém a mais recente
+  const byId = new Map();
+  raw.forEach(r => {
+    const key = r.cpf && r.cpf.length >= 5 ? r.cpf : `nome:${norm(r.nome)}`;
+    if (!byId.has(key) || r.ts > byId.get(key).ts) byId.set(key, r);
+  });
+  return [...byId.values()];
+}
+
+// Cargos que contam para aderência (Analista = PA, Triagista)
+const CARGOS_CONTAVEIS = ['Analista de atendimento', 'Triagista'];
+function isCargoContavel(cargo) {
+  const cn = norm(cargo);
+  return CARGOS_CONTAVEIS.some(c => norm(c) === cn || cn.includes(norm(c)));
+}
+
+// ─── Agrega por loja ────────────────────────────────────────────────
+function aggregate(respostas) {
+  const map = new Map(); // lojaKey → { sistema, respostasTotal[], respostasContaveis[], sim, cargos }
+  LOJAS_SISTEMA.forEach(l => {
+    map.set(norm(l.nome), { sistema: l, respostasTotal: [], respostasContaveis: [], sim: 0, cargos: {}, cargosExcluidos: {} });
+  });
+
+  respostas.forEach(r => {
+    const lojaMatch = matchLoja(r.loja);
+    const key = lojaMatch ? norm(lojaMatch.nome) : null;
+    if (!key || !map.has(key)) return;
+    const d = map.get(key);
+    
+    // Adiciona à lista total
+    d.respostasTotal.push(r);
+    
+    // Verifica se cargo é contável
+    const contavel = isCargoContavel(r.cargo);
+    const c = r.cargo || 'Não informado';
+    
+    if (contavel) {
+      d.respostasContaveis.push(r);
+      if (r.inter === 'Sim') d.sim++;
+      d.cargos[c] = (d.cargos[c]||0) + 1;
+    } else {
+      d.cargosExcluidos[c] = (d.cargosExcluidos[c]||0) + 1;
+    }
+  });
+
+  return [...map.values()].map(d => {
+    const tot  = d.sistema.tot || 0;
+    const resp = d.respostasContaveis.length; // apenas contáveis
+    const sim  = d.sim;
+    const respTotal = d.respostasTotal.length; // todas (para info)
+    const pctResp = tot > 0 ? Math.round(resp / tot * 100) : 0;
+    const pctSim  = tot > 0 ? Math.round(sim  / tot * 100) : 0;
+    return { ...d, tot, resp, sim, respTotal, pctResp, pctSim };
+  });
+}
+
+// ─── Render ──────────────────────────────────────────────────────────
+function render(rows, atualizadoEm) {
+  window.dashboardRows = rows;
+  window.dashboardUpdatedAt = atualizadoEm;
+  window.lojaData = {};
+
+  const totalLojas  = rows.length;
+  const totalOrc    = rows.reduce((a,r) => a + r.tot, 0);
+  const totalResp   = rows.reduce((a,r) => a + r.resp, 0);
+  const totalSim    = rows.reduce((a,r) => a + r.sim, 0);
+  const pctGlobal   = totalOrc > 0 ? Math.round(totalSim / totalOrc * 100) : 0;
+  const lojasComResp= rows.filter(r => r.resp > 0).length;
+
+  // Ordena por pctSim desc para podium / asc para alertas
+  const sorted     = [...rows].sort((a,b) => b.pctSim - a.pctSim);
+  const topLow     = [...rows].filter(r => r.tot > 0).sort((a,b) => a.pctSim - b.pctSim).slice(0,3);
+
+  const C = document.getElementById('content');
+  C.innerHTML = `
+
+  <!-- Update tag -->
+  <p class="update-tag">Atualizado em: <strong>${atualizadoEm}</strong> · ${totalResp} respostas únicas (deduplificadas por CPF)</p>
+
+  <div class="page-actions">
+    <button class="action-btn" onclick="exportAllData()">⬇️ Baixar Excel completo</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-val">${totalLojas}</div>
+      <div class="kpi-label">Lojas no sistema</div>
+      <div class="kpi-sub">${lojasComResp} com resposta</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-val">${totalResp}</div>
+      <div class="kpi-label">Respostas únicas</div>
+      <div class="kpi-sub">de ${totalOrc} vagas orçadas</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-val">${totalSim}</div>
+      <div class="kpi-label">Interessados (Sim)</div>
+      <div class="kpi-sub">${totalResp > 0 ? Math.round(totalSim/totalResp*100) : 0}% das respostas</div>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-val">${pctGlobal}%</div>
+      <div class="kpi-label">Cobertura global</div>
+      <div class="kpi-sub">Interessados / Vagas</div>
+    </div>
+  </div>
+
+  <!-- Ring global -->
+  <div class="ring-wrap">
+    <div class="ring" id="ringWrap">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle class="ring-bg"   cx="40" cy="40" r="35"/>
+        <circle class="ring-fill" cx="40" cy="40" r="35"
+          stroke="${progColor(pctGlobal)}"
+          stroke-dasharray="${Math.PI*2*35}"
+          stroke-dashoffset="${Math.PI*2*35 * (1 - pctGlobal/100)}"
+          id="ringCircle"/>
+      </svg>
+      <div class="ring-label">
+        <span class="ring-pct">${pctGlobal}%</span>
+        <span class="ring-sub">adoção</span>
+      </div>
+    </div>
+    <div class="ring-info">
+      <h3>Aderência Geral</h3>
+      <p>
+        <strong>${totalSim}</strong> pessoas interessadas em migrar de <strong>${totalOrc}</strong> vagas orçadas em ${totalLojas} lojas.<br>
+        <strong>${totalResp - totalSim}</strong> responderam que <em>não</em> têm interesse.
+      </p>
+    </div>
+  </div>
+
+  <!-- Top 3 melhores -->
+  <div class="card">
+    <div class="card-title">🏆 Maiores Aderências <span class="tag">Top 3</span></div>
+    <div class="podium">
+      ${sorted.filter(r=>r.tot>0).slice(0,3).map((r,i) => {
+        const medals = ['🥇','🥈','🥉'];
+        const cls = ['gold','silver','bronze'][i];
+        return `<div class="podium-item ${cls}">
+          <span class="podium-medal">${medals[i]}</span>
+          <div class="podium-pct">${r.pctSim}%</div>
+          <div class="podium-name">${r.sistema.nome}</div>
+          <div class="podium-detail">${r.sim}/${r.tot} vagas</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- Lojas críticas -->
+  <div class="card">
+    <div class="card-title">⚠️ Menor Aderência <span class="tag">Atenção</span></div>
+    <div class="alert-list">
+      ${topLow.filter(r=>r.tot>0).map(r => `
+        <div class="alert-row">
+          <div class="icon">🏪</div>
+          <div class="info">
+            <strong>${r.sistema.nome}</strong>
+            <span>${r.resp} resposta${r.resp!==1?'s':''} · ${r.sim} interesse${r.sim!==1?'s':''} de ${r.tot} vagas</span>
+          </div>
+          <div class="pct-badge">${r.pctSim}%</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <!-- Lista de todas as lojas -->
+  <div class="card" style="padding-bottom:8px">
+    <div class="card-title">🏢 Todas as Lojas</div>
+
+    <!-- Filtros -->
+    <div class="store-filters">
+      <button class="filter-btn active" data-filter="all"   onclick="filterStores('all',this)">Todas</button>
+      <button class="filter-btn"        data-filter="otimo" onclick="filterStores('otimo',this)">🟢 Ótimo</button>
+      <button class="filter-btn"        data-filter="bom"   onclick="filterStores('bom',this)">🔵 Bom</button>
+      <button class="filter-btn"        data-filter="medio" onclick="filterStores('medio',this)">🟡 Médio</button>
+      <button class="filter-btn"        data-filter="baixo" onclick="filterStores('baixo',this)">🔴 Baixo</button>
+      <button class="filter-btn"        data-filter="zero"  onclick="filterStores('zero',this)">⬜ Zero</button>
+    </div>
+    <input class="search-box" type="text" placeholder="🔍 Buscar loja…" oninput="searchStores(this.value)">
+
+    <div id="storeList">
+    ${sorted.map(r => {
+      const [stClass, stLabel] = statusLabel(r.pctSim);
+      const color = progColor(r.pctSim);
+      const pctResp = r.tot > 0 ? Math.round(r.resp/r.tot*100) : 0;
+
+      const cargoPills = Object.entries(r.cargos).map(([c,n]) => {
+        let cls = 'cargo-pill';
+        if (/triag/i.test(c)) cls += ' triag';
+        else if (/sup|coord/i.test(c)) cls += ' sup';
+        return `<span class="${cls}">${c} (${n})</span>`;
+      }).join('');
+
+      // determina data-status para filtro
+      let ds = 'zero';
+      if (r.pctSim >= 80) ds = 'otimo';
+      else if (r.pctSim >= 50) ds = 'bom';
+      else if (r.pctSim >= 25) ds = 'medio';
+      else if (r.pctSim > 0) ds = 'baixo';
+
+      const lojaKeyNorm = norm(r.sistema.nome);
+      const ativos = window.ativosPorLoja[lojaKeyNorm] || 0;
+      const contratados = window.contratadosPorLoja[lojaKeyNorm] || 0;
+
+      // Armazena dados no window.lojaData
+      window.lojaData[lojaKeyNorm] = {
+        lojaName: r.sistema.nome,
+        respostas: r.respostasContaveis,
+        ativos,
+        contratados,
+        tot: r.tot,
+        sim: r.sim,
+      };
+
+      return `
+      <div class="store-item" data-status="${ds}" data-nome="${norm(r.sistema.nome)}" 
+           onclick="openModal('${lojaKeyNorm}')">
+        <div class="store-header">
+          <span class="store-emoji">🏪</span>
+          <span class="store-name">${r.sistema.nome}</span>
+          <span class="store-status ${stClass}">${stLabel}</span>
+        </div>
+        <div class="store-metrics">
+          <div class="sm">
+            <div class="sm-val" style="color:#0f766e">${ativos}</div>
+            <div class="sm-label">Ativos</div>
+          </div>
+          <div class="sm">
+            <div class="sm-val" style="color:var(--primary)">${contratados}/${r.tot}</div>
+            <div class="sm-label">Contratados</div>
+          </div>
+          <div class="sm">
+            <div class="sm-val" style="color:var(--success)">${r.sim}</div>
+            <div class="sm-label">Interessados</div>
+          </div>
+          <div class="sm">
+            <div class="sm-val" style="color:${color}">${r.pctSim}%</div>
+            <div class="sm-label">Aderência</div>
+          </div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-labels">
+            <span>${r.resp} respondeu (${pctResp}%)</span>
+            <span>${r.tot - r.sim} vagas descobertas</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:${r.pctSim}%;background:${color}"></div>
+          </div>
+        </div>
+        ${cargoPills ? `<div class="cargo-row">${cargoPills}</div>` : ''}
+      </div>`;
+    }).join('')}
+    </div>
+  </div>
+
+  `;
+}
+
+// ─── Filtros & Busca ────────────────────────────────────────────────
+function filterStores(filter, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  window._activeFilter = filter;
+  applyFilters();
+}
+function searchStores(q) {
+  window._searchQ = norm(q);
+  applyFilters();
+}
+function applyFilters() {
+  const f = window._activeFilter || 'all';
+  const q = window._searchQ || '';
+  document.querySelectorAll('.store-item').forEach(el => {
+    const matchF = f === 'all' || el.dataset.status === f;
+    const matchQ = !q || el.dataset.nome.includes(q);
+    el.classList.toggle('hidden', !(matchF && matchQ));
+  });
+}
+
+// ─── Init ────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    await loadContratados();  // Carrega dados de pessoas contratadas
+    const respostas = await loadSheet();
+    const rows      = aggregate(respostas);
+    const now       = new Date().toLocaleString('pt-BR');
+    document.getElementById('loading').style.display  = 'none';
+    document.getElementById('content').style.display  = 'block';
+    render(rows, now);
+    window._activeFilter = 'all';
+    window._searchQ      = '';
+  } catch (err) {
+    document.getElementById('loading').innerHTML = `
+      <div style="color:#ef4444;text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+        <strong>Erro ao carregar dados</strong><br>
+        <small>${err.message}</small><br><br>
+        <small style="color:#6b7280">Verifique se a planilha está pública (compartilhar → qualquer pessoa com o link).</small>
+      </div>`;
+  }
+})();
+</script>
+</body>
+</html>
