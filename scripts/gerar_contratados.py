@@ -81,14 +81,22 @@ print()
 # Salva os dados
 with open('output/contratados_por_loja.json', 'w', encoding='utf-8') as f:
     json.dump(contratados_por_loja, f, indent=2, ensure_ascii=False)
+with open('web/contratados_por_loja.json', 'w', encoding='utf-8') as f:
+    json.dump(contratados_por_loja, f, indent=2, ensure_ascii=False)
 
 with open('output/ativos_por_loja.json', 'w', encoding='utf-8') as f:
+    json.dump(ativos_por_loja, f, indent=2, ensure_ascii=False)
+with open('web/ativos_por_loja.json', 'w', encoding='utf-8') as f:
     json.dump(ativos_por_loja, f, indent=2, ensure_ascii=False)
 
 with open('output/cpf_loja_map.json', 'w', encoding='utf-8') as f:
     json.dump(cpf_map, f, indent=2, ensure_ascii=False)
+with open('web/cpf_loja_map.json', 'w', encoding='utf-8') as f:
+    json.dump(cpf_map, f, indent=2, ensure_ascii=False)
 
 with open('output/cpf_status_map.json', 'w', encoding='utf-8') as f:
+    json.dump(cpf_status_map, f, indent=2, ensure_ascii=False)
+with open('web/cpf_status_map.json', 'w', encoding='utf-8') as f:
     json.dump(cpf_status_map, f, indent=2, ensure_ascii=False)
 
 print('✓ Dados salvos em:')
@@ -96,3 +104,7 @@ print('  - output/contratados_por_loja.json')
 print('  - output/ativos_por_loja.json')
 print('  - output/cpf_loja_map.json')
 print('  - output/cpf_status_map.json')
+print('  - web/contratados_por_loja.json')
+print('  - web/ativos_por_loja.json')
+print('  - web/cpf_loja_map.json')
+print('  - web/cpf_status_map.json')

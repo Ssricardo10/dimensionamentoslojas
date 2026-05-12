@@ -505,17 +505,25 @@ function statusLabel(pct) {
 // ─── Carrega dados de contratados ────────────────────────────────
 async function loadContratados() {
   try {
-    // Tenta carregar de output/ (para testes locais)
-    const respAtivos = await fetch('../output/ativos_por_loja.json');
-    const respLoja = await fetch('../output/contratados_por_loja.json');
-    const respCpf = await fetch('../output/cpf_loja_map.json');
-    const respCpfStatus = await fetch('../output/cpf_status_map.json');
+    const fetchFirstJson = async (paths) => {
+      for (const path of paths) {
+        try {
+          const resp = await fetch(path, { cache: 'no-store' });
+          if (resp.ok) return await resp.json();
+        } catch (_) {
+          // tenta o próximo caminho
+        }
+      }
+      return null;
+    };
+
+    // Em produção (Vercel) os JSONs ficam em /web; local pode usar output/
+    const ativosRaw = await fetchFirstJson(['ativos_por_loja.json', '/web/ativos_por_loja.json', '../output/ativos_por_loja.json', '/output/ativos_por_loja.json']);
+    const contratadosRaw = await fetchFirstJson(['contratados_por_loja.json', '/web/contratados_por_loja.json', '../output/contratados_por_loja.json', '/output/contratados_por_loja.json']);
+    const cpfLojaRaw = await fetchFirstJson(['cpf_loja_map.json', '/web/cpf_loja_map.json', '../output/cpf_loja_map.json', '/output/cpf_loja_map.json']);
+    const cpfStatusRaw = await fetchFirstJson(['cpf_status_map.json', '/web/cpf_status_map.json', '../output/cpf_status_map.json', '/output/cpf_status_map.json']) || {};
     
-    if (respAtivos.ok && respLoja.ok && respCpf.ok) {
-      const ativosRaw = await respAtivos.json();
-      const contratadosRaw = await respLoja.json();
-      const cpfLojaRaw = await respCpf.json();
-      const cpfStatusRaw = respCpfStatus.ok ? await respCpfStatus.json() : {};
+    if (ativosRaw && contratadosRaw && cpfLojaRaw) {
 
       window.ativosPorLoja = Object.entries(ativosRaw).reduce((acc, [loja, total]) => {
         const key = norm(loja);
@@ -549,7 +557,7 @@ async function loadContratados() {
 
       console.log('✓ Dados de contratados carregados:', Object.keys(window.contratadosPorLoja).length, 'lojas');
     } else {
-      console.warn('Não foi possível carregar dados de contratados (saída não crítica)');
+      console.warn('Não foi possível carregar dados nominais (ativos/contratados). Mantendo zeros no painel.');
     }
   } catch (err) {
     console.warn('Erro ao carregar contratados:', err.message);
