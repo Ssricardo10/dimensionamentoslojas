@@ -298,6 +298,37 @@
     .sm-val { font-size: 18px; font-weight: 800; color: var(--text); }
     .sm-label { font-size: 9.5px; color: var(--muted); margin-top: 1px; }
 
+    /* ─── Tooltips ────────────────────────────────────────────── */
+    [data-tooltip] { cursor: help; position: relative; }
+    [data-tooltip]::before {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 9px);
+      left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: #f8fafc;
+      font-size: 11px; font-weight: 500; line-height: 1.45;
+      padding: 8px 11px; border-radius: 8px;
+      white-space: normal; width: 190px; text-align: center;
+      pointer-events: none; opacity: 0;
+      transition: opacity .18s ease;
+      z-index: 9999;
+    }
+    [data-tooltip]::after {
+      content: '';
+      position: absolute;
+      bottom: calc(100% + 3px);
+      left: 50%; transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #1e293b;
+      pointer-events: none; opacity: 0;
+      transition: opacity .18s ease;
+      z-index: 9999;
+    }
+    [data-tooltip]:hover::before,
+    [data-tooltip]:hover::after,
+    [data-tooltip].tip-on::before,
+    [data-tooltip].tip-on::after { opacity: 1; }
+
     /* Progress bar */
     .prog-wrap { margin-top: 10px; }
     .prog-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
@@ -401,7 +432,7 @@ const GID       = '466808166';
 const GVIZ_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
 // Lojas do sistema (orçamento)
-const LOJAS_SISTEMA = [
+let LOJAS_SISTEMA = [
   { nome:"Jardins",                         ag:7,  tr:1, tot:8,  status:"normal"  },
   { nome:"Ipiranga",                        ag:13, tr:2, tot:15, status:"critico" },
   { nome:"São Mateus",                      ag:23, tr:5, tot:28, status:"critico" },
@@ -500,6 +531,68 @@ function statusLabel(pct) {
   if (pct >= 50)  return ['status-bom',    '🔵 Bom'];
   if (pct >= 25)  return ['status-medio',  '🟡 Médio'];
   return               ['status-baixo',  '🔴 Baixo'];
+}
+
+function toNum(v) {
+  const n = Number(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function loadOrcadoFromBase() {
+  try {
+    if (!window.XLSX) {
+      console.warn('XLSX não disponível para carregar orçado da base.');
+      return;
+    }
+
+    const caminhos = [
+      '/data/Endere%C3%A7o%20Lojas.xlsx',
+      '../data/Endere%C3%A7o%20Lojas.xlsx',
+      'data/Endere%C3%A7o%20Lojas.xlsx',
+    ];
+
+    let buffer = null;
+    for (const caminho of caminhos) {
+      try {
+        const resp = await fetch(caminho, { cache: 'no-store' });
+        if (!resp.ok) continue;
+        buffer = await resp.arrayBuffer();
+        break;
+      } catch (_) {
+        // tenta próximo caminho
+      }
+    }
+
+    if (!buffer) {
+      console.warn('Base de lojas não encontrada (local/deploy), usando orçado padrão.');
+      return;
+    }
+
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    const byNome = new Map();
+    rows.forEach(r => {
+      const nome = String(r['Agência'] || '').trim();
+      if (!nome) return;
+      byNome.set(norm(nome), {
+        ag: toNum(r['QTDE PAs']),
+        tr: toNum(r['Triagistas']),
+        tot: toNum(r['Total HCs']),
+      });
+    });
+
+    LOJAS_SISTEMA = LOJAS_SISTEMA.map(l => {
+      const o = byNome.get(norm(l.nome));
+      if (!o) return l;
+      return { ...l, ag: o.ag, tr: o.tr, tot: o.tot };
+    });
+
+    console.log('✓ Orçado atualizado da base Endereço Lojas:', rows.length, 'linhas');
+  } catch (err) {
+    console.warn('Erro ao carregar orçado da base:', err.message);
+  }
 }
 
 // ─── Carrega dados de contratados ────────────────────────────────
@@ -870,22 +963,22 @@ function render(rows, atualizadoEm) {
 
   <!-- KPIs -->
   <div class="kpi-grid">
-    <div class="kpi">
+    <div class="kpi" data-tooltip="Total de lojas SABESP Trade cadastradas no sistema de alocação">
       <div class="kpi-val">${totalLojas}</div>
       <div class="kpi-label">Lojas no sistema</div>
       <div class="kpi-sub">${lojasComResp} com resposta</div>
     </div>
-    <div class="kpi green">
+    <div class="kpi green" data-tooltip="Formulários deduplicados por CPF — somente a resposta mais recente de cada colaborador é contada">
       <div class="kpi-val">${totalResp}</div>
       <div class="kpi-label">Respostas únicas</div>
       <div class="kpi-sub">de ${totalOrc} vagas orçadas</div>
     </div>
-    <div class="kpi green">
+    <div class="kpi green" data-tooltip="Colaboradores que responderam SIM ao formulário de migração (Analistas e Triagistas)">
       <div class="kpi-val">${totalSim}</div>
       <div class="kpi-label">Interessados (Sim)</div>
       <div class="kpi-sub">${totalResp > 0 ? Math.round(totalSim/totalResp*100) : 0}% das respostas</div>
     </div>
-    <div class="kpi orange">
+    <div class="kpi orange" data-tooltip="Total de interessados ÷ total de vagas orçadas em todas as lojas × 100">
       <div class="kpi-val">${pctGlobal}%</div>
       <div class="kpi-label">Cobertura global</div>
       <div class="kpi-sub">Interessados / Vagas</div>
@@ -1009,19 +1102,19 @@ function render(rows, atualizadoEm) {
           <span class="store-status ${stClass}">${stLabel}</span>
         </div>
         <div class="store-metrics">
-          <div class="sm">
+          <div class="sm" data-tooltip="Colaboradores com status Trabalhando na base nominal (Analistas + Triagistas)">
             <div class="sm-val" style="color:#0f766e">${ativos}</div>
             <div class="sm-label">Ativos</div>
           </div>
-          <div class="sm">
+          <div class="sm" data-tooltip="Admitidos na loja ÷ vagas orçadas na base de dimensionamento">
             <div class="sm-val" style="color:var(--primary)">${contratados}/${r.tot}</div>
             <div class="sm-label">Contratados</div>
           </div>
-          <div class="sm">
+          <div class="sm" data-tooltip="Responderam SIM ao formulário — somente Analistas de Atendimento e Triagistas">
             <div class="sm-val" style="color:var(--success)">${r.sim}</div>
             <div class="sm-label">Interessados</div>
           </div>
-          <div class="sm">
+          <div class="sm" data-tooltip="Interessados ÷ vagas orçadas × 100 (meta: 100%)">
             <div class="sm-val" style="color:${color}">${r.pctSim}%</div>
             <div class="sm-label">Aderência</div>
           </div>
@@ -1065,10 +1158,24 @@ function applyFilters() {
   });
 }
 
+// ─── Tooltip toggle (mobile / toque) ─────────────────────────────────
+document.addEventListener('click', function(e) {
+  const el = e.target.closest('[data-tooltip]');
+  document.querySelectorAll('[data-tooltip].tip-on').forEach(t => {
+    if (t !== el) t.classList.remove('tip-on');
+  });
+  if (el) {
+    // Não fechar imediatamente se clicou para abrir o card
+    e.stopPropagation();
+    el.classList.toggle('tip-on');
+  }
+}, true);
+
 // ─── Init ────────────────────────────────────────────────────────────
 (async () => {
   try {
-    await loadContratados();  // Carrega dados de pessoas contratadas
+    await loadOrcadoFromBase(); // Atualiza orçado a partir da planilha de lojas
+    await loadContratados();    // Carrega dados de pessoas contratadas
     const respostas = await loadSheet();
     const rows      = aggregate(respostas);
     const now       = new Date().toLocaleString('pt-BR');
