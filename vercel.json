@@ -12,11 +12,39 @@
       "destination": "/web/index.html"
     },
     {
+      "source": "/mapa.html",
+      "destination": "/web/index.html"
+    },
+    {
       "source": "/guia",
       "destination": "/web/guia.html"
     },
     {
+      "source": "/guia.html",
+      "destination": "/web/guia.html"
+    },
+    {
+      "source": "/aderencia",
+      "destination": "/web/aderencia.html"
+    },
+    {
+      "source": "/aderencia.html",
+      "destination": "/web/aderencia.html"
+    },
+    {
+      "source": "/coordenadores",
+      "destination": "/web/coordenadores.html"
+    },
+    {
+      "source": "/coordenadores.html",
+      "destination": "/web/coordenadores.html"
+    },
+    {
       "source": "/cadastro",
+      "destination": "/web/cadastro.html"
+    },
+    {
+      "source": "/cadastro.html",
       "destination": "/web/cadastro.html"
     }
   ]
