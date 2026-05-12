@@ -17,6 +17,13 @@ TITULOS_CONTAVEIS = {
     'PROMOTOR DIGITAL TRADE',
 }
 
+
+def is_titulo_contavel(value):
+    titulo = '' if pd.isna(value) else str(value)
+    titulo = ' '.join(titulo.upper().split())
+    # Inclui variações de analista (ex.: MOTORISTA/PASSAGEIRO) e promotor digital
+    return titulo.startswith('ANALISTA ATENDIMENTO COMERCIAL') or titulo.startswith('PROMOTOR DIGITAL TRADE')
+
 # Lê arquivo nominal
 dn = pd.read_excel('Sabesp Trade - Nominal Hcs - 11.05.2026.xlsx', sheet_name='Nominal Geral')
 print('✓ Arquivo nominal carregado')
@@ -28,7 +35,7 @@ print()
 dn['LOJA_NORMALIZADA'] = dn['LOJA'].apply(normalize_loja)
 dn_validas = dn[dn['LOJA_NORMALIZADA'] != ''].copy()
 dn_contaveis = dn_validas[
-    dn_validas['TÍTULO'].astype(str).str.strip().isin(TITULOS_CONTAVEIS)
+    dn_validas['TÍTULO'].apply(is_titulo_contavel)
 ].copy()
 ativos = dn_contaveis[
     dn_contaveis['DESCRIÇÃO'].astype(str).str.strip().str.lower().eq('trabalhando')

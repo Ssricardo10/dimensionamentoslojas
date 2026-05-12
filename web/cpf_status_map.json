@@ -995,6 +995,10 @@
     "loja": "Rio Grande da Serra",
     "ativo": true
   },
+  "49594525878": {
+    "loja": "Pinheiros - SEDE (Backoffice)",
+    "ativo": true
+  },
   "53376393826": {
     "loja": "Polo Taboão da Serra",
     "ativo": true
@@ -1047,12 +1051,20 @@
     "loja": "São Mateus",
     "ativo": true
   },
+  "70910443475": {
+    "loja": "Passageiro",
+    "ativo": true
+  },
   "37795764819": {
     "loja": "Arthur Alvim",
     "ativo": true
   },
   "50574610871": {
     "loja": "Embu das Artes",
+    "ativo": true
+  },
+  "56470677860": {
+    "loja": "Pinheiros - SEDE (Backoffice)",
     "ativo": true
   },
   "48776370879": {
@@ -1079,12 +1091,24 @@
     "loja": "Guararema",
     "ativo": true
   },
+  "16187389840": {
+    "loja": "Motorista",
+    "ativo": true
+  },
   "42583832875": {
     "loja": "Descomplica Butantã",
     "ativo": true
   },
   "50193763885": {
     "loja": "Freguesia do Ó",
+    "ativo": true
+  },
+  "47663815807": {
+    "loja": "Motorista",
+    "ativo": true
+  },
+  "42492013847": {
+    "loja": "Motorista",
     "ativo": true
   },
   "49511480804": {
@@ -1097,6 +1121,10 @@
   },
   "78576849291": {
     "loja": "Itaquaquecetuba",
+    "ativo": true
+  },
+  "28915312805": {
+    "loja": "Pinheiros - SEDE (Backoffice)",
     "ativo": true
   },
   "45894607850": {
@@ -1157,6 +1185,10 @@
   },
   "38190308831": {
     "loja": "Descomplica Capela do Socorro",
+    "ativo": true
+  },
+  "53432225873": {
+    "loja": "Pinheiros - SEDE (Backoffice)",
     "ativo": true
   },
   "45097250869": {
@@ -1245,6 +1277,10 @@
   },
   "137908547": {
     "loja": "Santo André",
+    "ativo": true
+  },
+  "47073176857": {
+    "loja": "Passageiro",
     "ativo": true
   },
   "44808001829": {
