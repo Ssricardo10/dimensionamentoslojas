@@ -18,6 +18,7 @@ class Loja:
     status: str
     lat: float = 0.0
     lng: float = 0.0
+    supervisores: int = 0
 
 
 @dataclass

@@ -36,6 +36,7 @@ def load_lojas(geocoder: Geocoder) -> list[Loja]:
             status=str(row["Status"]) if pd.notna(row["Status"]) else "-",
             lat=lat,
             lng=lng,
+            supervisores=int(row["Coordenador"]) if "Coordenador" in df.columns and pd.notna(row.get("Coordenador")) else 0,
         ))
 
     return lojas

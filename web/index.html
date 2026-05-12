@@ -1297,7 +1297,9 @@ function renderCoordinators() {
 
     const filterType = window.coordFilterType || 'todos';
     let coordsFiltered = alocados;
-    if (filterType !== 'todos') {
+    if (filterType === 'excel') {
+        coordsFiltered = alocados.filter(c => c.origem === 'excel');
+    } else if (filterType !== 'todos') {
         coordsFiltered = alocados.filter(c => c.tipo === filterType);
     }
 
@@ -1306,9 +1308,9 @@ function renderCoordinators() {
     const statusText = coords.status === 'completo' ? 'Completo' : 'Ajuste necessário';
 
     // Contagem por tipo
-    const qtdDupla = alocados.filter(c => c.tipo === 'dupla').length;
-    const qtdIndiv = alocados.filter(c => c.tipo === 'individual').length;
-    const qtdAgrup = alocados.filter(c => c.tipo === 'agrupador').length;
+    const qtdExcel = alocados.filter(c => c.origem === 'excel').length;
+    const qtdDedic = alocados.filter(c => c.tipo === 'dedicado' && c.origem !== 'excel').length;
+    const qtdItin = alocados.filter(c => c.tipo === 'itinerante').length;
 
     // Distribuição por zona
     const zoneDistribution = {};
@@ -1323,13 +1325,26 @@ function renderCoordinators() {
         }
     });
 
+    // Pré-calcular fração de cada supervisor
+    const supvFracao = {};
+    alocados.forEach(c => {
+        if (c.tipo === 'itinerante' && c.grupo_lojas) {
+            supvFracao[c.id] = 1 / c.grupo_lojas.length;
+        } else {
+            supvFracao[c.id] = 1;
+        }
+    });
+
     // Tabela por loja com coordenadores
     const lojaCoordRows = data.lojas.map(l => {
         const cList = mapaLoja[l.id] || [];
-        const qtdCoords = cList.length;
-        const tipos = cList.map(c => c.tipo);
-        const compartilhado = cList.some(c => c.tipo === 'agrupador');
-        return { loja: l, coords: cList, qtd: qtdCoords, compartilhado };
+        const compartilhado = cList.some(c => c.tipo === 'itinerante');
+        let fracao = 0;
+        cList.forEach(c => {
+            const sid = c.supv_id || c.coord_id || 0;
+            fracao += supvFracao[sid] || 1;
+        });
+        return { loja: l, coords: cList, qtd: cList.length, fracao, compartilhado };
     }).sort((a, b) => b.loja.vagas_agentes - a.loja.vagas_agentes);
 
     document.getElementById('v-coordinators').innerHTML = `
@@ -1342,24 +1357,25 @@ function renderCoordinators() {
                     <div class="metric-sub">Meta: ${coords.meta || 61}</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-val" style="color:#92400e">${qtdDupla}</div>
-                    <div class="metric-label">👥 Dupla</div>
-                    <div class="metric-sub">${resumo.lojas_grandes || 0} lojas >10 PAs</div>
+                    <div class="metric-val" style="color:#92400e">${qtdExcel}</div>
+                    <div class="metric-label">📋 Definidos</div>
+                    <div class="metric-sub">${resumo.lojas_com_supervisor_excel || 0} lojas (Excel)</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-val" style="color:#1e40af">${qtdIndiv}</div>
-                    <div class="metric-label">👤 Individual</div>
-                    <div class="metric-sub">1 coord/loja</div>
+                    <div class="metric-val" style="color:#1e40af">${qtdDedic}</div>
+                    <div class="metric-label">👤 Dedicado</div>
+                    <div class="metric-sub">1 supv/loja (calculado + turno)</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-val" style="color:#065f46">${qtdAgrup}</div>
-                    <div class="metric-label">🤝 Agrupador</div>
+                    <div class="metric-val" style="color:#065f46">${qtdItin}</div>
+                    <div class="metric-label">🤝 Itinerante</div>
                     <div class="metric-sub">${grupos.length} grupos formados</div>
                 </div>
             </div>
             <div style="margin-top:12px;padding:10px;background:#f0f9ff;border-radius:8px;font-size:11px;color:#1e40af">
-                <b>Regra:</b> >10 PAs = 2 coords | ≤10 PAs = 1 coord | Lojas pequenas próximas agrupadas<br>
-                <b>Economia:</b> ${resumo.bruto_sem_agrupamento || 0} necessários → ${coords.total} alocados (${resumo.economia || 0} economizados via agrupamento)
+                <b>Regra:</b> 1~3 PAs → até 3 lojas/supv | 4~6 PAs → até 2 lojas/supv | 7+ PAs → dedicado<br>
+                <b>Distribuição:</b> ${resumo.ja_alocados_excel || 0} definidos + ${resumo.supervisores_calculados || 0} calculados = ${coords.total} supervisores<br>
+                <b>Ajuste de turno:</b> ${resumo.ajustes_turno || 0} supervisor(es) adicional(is) por loja com 2 turnos
             </div>
         </div>
 
@@ -1374,7 +1390,7 @@ function renderCoordinators() {
                         <tr>
                             <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Loja</th>
                             <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb">PAs</th>
-                            <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb">Coords</th>
+                            <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb">Supv</th>
                             <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Tipo</th>
                             <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Horário</th>
                             <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb">Obs</th>
@@ -1383,17 +1399,16 @@ function renderCoordinators() {
                     <tbody>
                         ${lojaCoordRows.map(r => {
                             const l = r.loja;
-                            const tipoLabel = r.qtd >= 2 && !r.compartilhado ? 'dupla' : r.compartilhado ? 'agrupador' : 'individual';
-                            const tipoBg = tipoLabel === 'dupla' ? '#fed7aa' : tipoLabel === 'agrupador' ? '#d1fae5' : '#dbeafe';
-                            const tipoColor = tipoLabel === 'dupla' ? '#92400e' : tipoLabel === 'agrupador' ? '#065f46' : '#1e40af';
-                            const obs = r.coords.filter(c => c.tipo === 'agrupador').map(c => 'Compartilha: ' + (c.compartilhado_com || []).join(', ')).join('; ');
-                            const coordExcl = r.coords.filter(c => c.tipo !== 'agrupador').length;
-                            const coordCompart = r.coords.filter(c => c.tipo === 'agrupador').length;
-                            const qtdDisplay = coordCompart > 0 ? coordExcl + '+' + coordCompart + '*' : String(r.qtd);
+                            const hasExcel = r.coords.some(c => c.origem === 'excel');
+                            const tipoLabel = r.compartilhado ? 'itinerante' : hasExcel ? 'definido' : 'dedicado';
+                            const tipoBg = tipoLabel === 'definido' ? '#fed7aa' : tipoLabel === 'itinerante' ? '#d1fae5' : '#dbeafe';
+                            const tipoColor = tipoLabel === 'definido' ? '#92400e' : tipoLabel === 'itinerante' ? '#065f46' : '#1e40af';
+                            const obs = r.coords.filter(c => c.tipo === 'itinerante').map(c => 'Compartilha: ' + (c.compartilhado_com || []).join(', ')).join('; ');
+                            const fracDisplay = r.fracao % 1 === 0 ? String(r.fracao) : r.fracao.toFixed(1);
                             return '<tr style="border-bottom:1px solid #f3f4f6">' +
                                 '<td style="padding:8px;font-weight:600">' + l.nome + '</td>' +
                                 '<td style="padding:8px;text-align:center;font-weight:700">' + l.vagas_agentes + '</td>' +
-                                '<td style="padding:8px;text-align:center;font-weight:700;color:var(--primary)" title="' + (coordCompart > 0 ? coordCompart + ' compartilhado(s) com outra loja' : '') + '">' + qtdDisplay + '</td>' +
+                                '<td style="padding:8px;text-align:center;font-weight:700;color:var(--primary)" title="' + (r.compartilhado ? 'Supervisor compartilhado com outra loja' : '') + '">' + fracDisplay + '</td>' +
                                 '<td style="padding:8px"><span style="background:' + tipoBg + ';color:' + tipoColor + ';padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase">' + tipoLabel + '</span></td>' +
                                 '<td style="padding:8px;color:#6b7280;font-size:10px">' + l.horario + '</td>' +
                                 '<td style="padding:8px;color:#6b7280;font-size:10px">' + (obs || '-') + '</td>' +
@@ -1404,8 +1419,8 @@ function renderCoordinators() {
                         <tr>
                             <td style="padding:8px">TOTAL</td>
                             <td style="padding:8px;text-align:center">${data.lojas.reduce((s,l) => s + l.vagas_agentes, 0)}</td>
-                            <td style="padding:8px;text-align:center;color:var(--primary)">${coords.total} únicos</td>
-                            <td colspan="3" style="padding:8px;font-weight:400;font-size:10px;color:#6b7280">* = compartilhado com outra loja (agrupador)</td>
+                            <td style="padding:8px;text-align:center;color:var(--primary)">${lojaCoordRows.reduce((s,r) => s + r.fracao, 0)}</td>
+                            <td colspan="3" style="padding:8px;font-weight:400;font-size:10px;color:#6b7280">Itinerante = supervisor compartilhado entre lojas (fração)</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1420,9 +1435,9 @@ function renderCoordinators() {
             <div style="margin-bottom:12px">
                 <div class="panel-row">
                     <button class="pill-btn ${filterType==='todos'?'active':''}" onclick="filterCoordinators('todos')">Todos (${alocados.length})</button>
-                    <button class="pill-btn ${filterType==='dupla'?'active':''}" onclick="filterCoordinators('dupla')">Dupla (${qtdDupla})</button>
-                    <button class="pill-btn ${filterType==='individual'?'active':''}" onclick="filterCoordinators('individual')">Individual (${qtdIndiv})</button>
-                    <button class="pill-btn ${filterType==='agrupador'?'active':''}" onclick="filterCoordinators('agrupador')">Agrupador (${qtdAgrup})</button>
+                    <button class="pill-btn ${filterType==='excel'?'active':''}" onclick="filterCoordinators('excel')">Definidos (${qtdExcel})</button>
+                    <button class="pill-btn ${filterType==='dedicado'?'active':''}" onclick="filterCoordinators('dedicado')">Dedicado (${qtdDedic})</button>
+                    <button class="pill-btn ${filterType==='itinerante'?'active':''}" onclick="filterCoordinators('itinerante')">Itinerante (${qtdItin})</button>
                 </div>
             </div>
             <div style="max-height:350px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px">
@@ -1439,11 +1454,12 @@ function renderCoordinators() {
                     </thead>
                     <tbody>
                         ${coordsFiltered.map(c => {
-                            const tipoBg = c.tipo === 'individual' ? '#dbeafe' : c.tipo === 'dupla' ? '#fed7aa' : '#d1fae5';
-                            const tipoColor = c.tipo === 'individual' ? '#1e40af' : c.tipo === 'dupla' ? '#92400e' : '#065f46';
+                            const label = c.origem === 'excel' ? 'definido' : c.tipo;
+                            const tipoBg = label === 'definido' ? '#fed7aa' : label === 'itinerante' ? '#d1fae5' : '#dbeafe';
+                            const tipoColor = label === 'definido' ? '#92400e' : label === 'itinerante' ? '#065f46' : '#1e40af';
                             return '<tr style="border-bottom:1px solid #f3f4f6">' +
                                 '<td style="padding:8px;font-weight:700;color:var(--primary);font-family:monospace">#' + String(c.id).padStart(3, '0') + '</td>' +
-                                '<td style="padding:8px"><span style="background:' + tipoBg + ';color:' + tipoColor + ';padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase">' + c.tipo + '</span></td>' +
+                                '<td style="padding:8px"><span style="background:' + tipoBg + ';color:' + tipoColor + ';padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase">' + label + '</span></td>' +
                                 '<td style="padding:8px;font-weight:600">' + c.loja_nome + '</td>' +
                                 '<td style="padding:8px;color:#6b7280">' + c.municipio + '</td>' +
                                 '<td style="padding:8px;color:#6b7280;font-size:10px">' + (c.horario || '') + '</td>' +
@@ -1461,7 +1477,7 @@ function renderCoordinators() {
             <div class="card-title">🤝 Grupos de Lojas Agrupadas (${grupos.length} grupos)</div>
             ${grupos.map(g => '<div class="candidate" style="background:#f0fdf4;border-color:#bbf7d0">' +
                 '<div class="cand-top">' +
-                    '<div class="cand-name">👔 Coord #' + String(g.coordenador_id).padStart(3, '0') + '</div>' +
+                    '<div class="cand-name">👔 Supv #' + String(g.supervisor_id || g.coordenador_id || 0).padStart(3, '0') + '</div>' +
                     '<div class="cand-dist"><b>' + g.distancia_maxima_km + ' km</b> entre lojas</div>' +
                 '</div>' +
                 '<div class="cand-meta">' +
@@ -1927,41 +1943,52 @@ function exportCoordinators() {
     const mapaLoja = data.coordenadores.mapa_loja || {};
     const resumo = data.coordenadores.resumo || {};
 
-    // Sheet 1: Coordenadores por Loja
-    const porLoja = [['Loja', 'Zona', 'Município', 'Horário', 'PAs', 'Coords Exclusivos', 'Coords Compartilhados', 'Total Referências', 'Tipo', 'Compartilha com', 'IDs Coords']];
-    let totalExcl = 0, totalCompart = 0;
+    // Sheet 1: Supervisores por Loja (com frações para itinerantes)
+    // Pré-calcular fração de cada supervisor itinerante
+    const supvFracao = {};
+    data.coordenadores.alocados.forEach(c => {
+        if (c.tipo === 'itinerante' && c.grupo_lojas) {
+            supvFracao[c.id] = 1 / c.grupo_lojas.length;
+        } else {
+            supvFracao[c.id] = 1;
+        }
+    });
+
+    const porLoja = [['Loja', 'Zona', 'Município', 'Horário', 'PAs', 'Supv (fração)', 'Tipo', 'Compartilha com', 'IDs Supv']];
+    let somaFracao = 0;
     data.lojas.forEach(l => {
         const cList = mapaLoja[l.id] || [];
-        const exclusivos = cList.filter(c => c.tipo !== 'agrupador').length;
-        const compartilhados = cList.filter(c => c.tipo === 'agrupador').length;
-        totalExcl += exclusivos;
-        totalCompart += compartilhados;
-        const tipo = exclusivos >= 2 ? 'dupla' : compartilhados > 0 ? 'agrupador' : 'individual';
-        const compart = cList.filter(c => c.tipo === 'agrupador').flatMap(c => c.compartilhado_com || []).join(', ') || '-';
-        const ids = cList.map(c => '#' + String(c.coord_id).padStart(3,'0')).join(', ') || '-';
-        porLoja.push([l.nome, l.zona, l.municipio, l.horario, l.vagas_agentes, exclusivos, compartilhados, cList.length, tipo, compart, ids]);
+        let fracao = 0;
+        cList.forEach(c => {
+            const sid = c.supv_id || c.coord_id || 0;
+            fracao += supvFracao[sid] || 1;
+        });
+        somaFracao += fracao;
+        const tipo = cList.some(c => c.tipo === 'itinerante') ? 'itinerante' : cList.some(c => c.origem === 'excel') ? 'definido' : cList.length > 0 ? 'dedicado' : '-';
+        const compart = cList.filter(c => c.tipo === 'itinerante').flatMap(c => c.compartilhado_com || []).join(', ') || '-';
+        const ids = cList.map(c => '#' + String(c.supv_id || c.coord_id || 0).padStart(3,'0')).join(', ') || '-';
+        porLoja.push([l.nome, l.zona, l.municipio, l.horario, l.vagas_agentes, Math.round(fracao * 100) / 100, tipo, compart, ids]);
     });
     porLoja.push([]);
-    porLoja.push(['TOTAL COORDENADORES ÚNICOS:', data.coordenadores.total]);
-    porLoja.push(['Nota:', 'Coords compartilhados (agrupador) aparecem em 2 lojas mas são 1 pessoa só']);
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(porLoja), 'Coords por Loja');
+    porLoja.push(['TOTAL SUPERVISORES:', Math.round(somaFracao * 100) / 100]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(porLoja), 'Supv por Loja');
 
-    // Sheet 2: Lista de Coordenadores
+    // Sheet 2: Lista de Supervisores
     const coordsData = data.coordenadores.alocados.map(c => {
         const loja = data.lojas.find(l => l.id === c.loja_id);
         return {
             'ID': String(c.id).padStart(3, '0'),
             'Tipo': c.tipo,
+            'Origem': c.origem || '-',
             'Loja(s)': c.loja_nome,
             'Município': c.municipio,
             'Zona': loja ? loja.zona : '-',
             'Horário': c.horario || '-',
             'PAs': c.vagas_agentes,
-            'Dupla com': c.dupla_com ? '#' + String(c.dupla_com).padStart(3, '0') : '-',
             'Dist. Grupo (km)': c.distancia_km || '-',
         };
     });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(coordsData), 'Coordenadores');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(coordsData), 'Supervisores');
 
     // Sheet 3: Grupos Agrupados
     if (data.coordenadores.grupos_pequenas && data.coordenadores.grupos_pequenas.length > 0) {
@@ -1970,12 +1997,11 @@ function exportCoordinators() {
             g.lojas.forEach((l, idx) => {
                 gruposData.push({
                     'Grupo': g.id,
-                    'Coord ID': '#' + String(g.coordenador_id).padStart(3, '0'),
+                    'Supv ID': '#' + String(g.supervisor_id || g.coordenador_id || 0).padStart(3, '0'),
                     'Loja': l.loja_nome,
                     'Município': l.municipio,
                     'PAs': l.vagas_agentes,
                     'Dist Máx (km)': idx === 0 ? g.distancia_maxima_km : '',
-                    'Tempo (min)': idx === 0 ? g.tempo_deslocamento_min : '',
                 });
             });
         });
@@ -1984,18 +2010,23 @@ function exportCoordinators() {
 
     // Sheet 4: Resumo
     const resumoData = [
-        { 'Métrica': 'Total Coordenadores', 'Valor': data.coordenadores.total },
+        { 'Métrica': 'Total Supervisores', 'Valor': data.coordenadores.total },
         { 'Métrica': 'Meta', 'Valor': data.coordenadores.meta },
         { 'Métrica': 'Status', 'Valor': data.coordenadores.status },
-        { 'Métrica': 'Lojas > 10 PAs (2 coords)', 'Valor': resumo.lojas_grandes },
-        { 'Métrica': 'Lojas ≤ 10 PAs', 'Valor': resumo.lojas_pequenas },
+        { 'Métrica': 'Definidos no Excel', 'Valor': resumo.ja_alocados_excel },
+        { 'Métrica': 'Ajuste por 2 turnos', 'Valor': resumo.ajustes_turno || 0 },
+        { 'Métrica': 'Lojas com supervisor (Excel)', 'Valor': resumo.lojas_com_supervisor_excel },
+        { 'Métrica': 'Lojas sem supervisor', 'Valor': resumo.lojas_sem_supervisor },
+        { 'Métrica': 'Pequenas (1-3 PAs)', 'Valor': resumo.pequenas_1_3 },
+        { 'Métrica': 'Médias (4-6 PAs)', 'Valor': resumo.medias_4_6 },
+        { 'Métrica': 'Grandes (7+ PAs)', 'Valor': resumo.grandes_7_mais },
         { 'Métrica': 'Grupos Formados', 'Valor': resumo.grupos_formados },
-        { 'Métrica': 'Necessidade Bruta (sem agrupamento)', 'Valor': resumo.bruto_sem_agrupamento },
-        { 'Métrica': 'Economia via Agrupamento', 'Valor': resumo.economia },
+        { 'Métrica': 'Lojas Agrupadas', 'Valor': resumo.lojas_agrupadas },
+        { 'Métrica': 'Supervisores Calculados', 'Valor': resumo.supervisores_calculados },
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumoData), 'Resumo');
 
-    XLSX.writeFile(wb, 'SABESP_Coordenadores_' + new Date().toISOString().slice(0,10) + '.xlsx');
+    XLSX.writeFile(wb, 'SABESP_Supervisores_' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 </script>
 </body>
